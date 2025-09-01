@@ -2,7 +2,8 @@ import axios from "axios";
 
 // Strip trailing slash so we don’t get double slashes in requests
 const BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000"
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://ai-card-generate-backend.onrender.com"
 ).replace(/\/+$/, "");
 
 const api = axios.create({
