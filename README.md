@@ -7,7 +7,7 @@
 
 ## 📝 Description
 
-This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium model** (5 free AI generations per month) and seamless **M-Pesa (IntaSend)** subscription payments ( a feature that's currently being implemented), FlashLearn is built to enhance learning for students and lifelong learners alike.
+This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium model** (5 free AI generations per month) and seamless **M-Pesa (IntaSend)** subscription payments (a feature that's currently being implemented), FlashLearn is built to enhance learning for students and lifelong learners alike.
 
 ---
 
