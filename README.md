@@ -93,8 +93,8 @@ The frontend connects to the Flask backend for:
     - Free prompts remaining
     - Payment call-to-action 
 
-Payments are handled by **Mpesa (IntaSend Hosted Checkout)**.
-**Note**: This feature is upcoming and is still being implemented.
+- Payments are handled by **Mpesa (IntaSend Hosted Checkout)**.
+- **Note**: This feature is upcoming and is still being implemented.
 
 ---
 
