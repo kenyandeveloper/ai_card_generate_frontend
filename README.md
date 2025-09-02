@@ -50,7 +50,8 @@ For support or inquiries, feel free to reach out:
 
 - 📧 **Email:** [Email:](mailto:iankabaka1@gmail.com)
 
-## License
+## 📄 License
+This project is licensed under the MIT License 
 
-This project is licensed under the **MIT License**.
+Built with ❤️ by the 3 Members
 ```
