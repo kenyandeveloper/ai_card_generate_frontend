@@ -1,56 +1,50 @@
-# FlashLearn
+# FlashLearn Frontend
 
-## Authors
+## 👥 Authors
+- Ian Kabaka  
+- Team Members: **Kabakadev**, **Psychedelic-313**, **OumaMichael**
 
-- **Ian Kabaka**
+## 📖 Description
+This repository contains the **frontend** of FlashLearn — a React-based interactive flashcard learning application. It allows users to:
+- Create decks & flashcards
+- Study using flip cards
+- View dashboards with progress & statistics
+- Generate AI-powered flashcards
+- Manage billing and subscriptions via **M-Pesa (IntaSend)**
 
-## Description
+---
 
-FlashLearn is an interactive flashcard-based learning application designed to enhance the study experience. Users can sign in, create decks, add flashcards, and engage in study sessions by flipping flashcards to test their knowledge.
+## ✨ Features
+- **Authentication UI** (Signup, Login, JWT session storage)
+- **Deck Management** (create, edit, delete decks)
+- **Flashcard Management** (add, edit, delete flashcards)
+- **Dashboard & Statistics**
+- **AI Flashcard Generation** (freemium + paid subscription)
+- **Billing UI** with M-Pesa (IntaSend Hosted Checkout)
+- **Light/Dark Mode Toggle**
+- **Responsive Design** (works on desktop & mobile)
 
-## Features
+---
 
-- **User Authentication** (Sign in)
-- **Create and Edit Decks**
-- **Create and Edit Flashcards**
-- **Flip Flashcards During Study Sessions**
-- **Light and Dark Mode Toggle**
-- **Responsive Design for Seamless Use Across Devices**
+## 🛠️ Tech Stack
+- **React** – Frontend framework
+- **Material UI** – Component library
+- **Framer Motion** – Animations
+- **Lucide React** – Icons
+- **Tailwind CSS** – Minimal styling
+- **Vite** – Development bundler
 
-## Prerequisites
+---
 
-Before using FlashLearn, ensure you have the following:
+## 📦 Installation & Setup
 
-- **Basic Computer Skills**
-- **An Operating System Installed** (Windows, macOS, or Linux)
-- **Node.js and npm Installed** (for local setup)
+### Prerequisites
+- Node.js & npm
+- Git
 
-## Installation
-
-To install and run FlashLearn locally, follow these steps:
-
-```
-
-## Technologies Used
-
-FlashLearn is built using the following technologies:
-
-- **React** (Frontend Framework)
-- **Material UI** (Component Library)
-- **Framer Motion** (Animations)
-- **Lucide React** (Icons)
-- **Tailwind CSS** (Minimal Usage for Styling)
-
-## Related Repositories
-
-
-## Support & Contact
-
-For support or inquiries, feel free to reach out:
-
-- 📧 **Email:** [Email:](mailto:iankabaka1@gmail.com)
-
-## License
-
-This project is licensed under the **MIT License**.
-```
+### Setup
+```bash
+git clone <repo-url>
+cd flashlearn-frontend
+npm install
+npm run dev
