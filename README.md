@@ -98,9 +98,9 @@ Payments are handled by **Mpesa (IntaSend Hosted Checkout)**.
 
 For support or inquiries, feel free to reach out:
 
-- ✉️ **Email:** [Email:](mailto:franklinphilip81@gmail.com)
-- ✉️ **Email:** [Email:](mailto:iankabaka1@gmail.com)
-- ✉️ **Email:** [Email:](mailto:oumamichael108@gmail.com)
+- ✉️ **Email:** [franklinphilip81@gmail.com](mailto:franklinphilip81@gmail.com)
+- ✉️ **Email:** [iankabaka1@gmail.com](mailto:iankabaka1@gmail.com)
+- ✉️ **Email:** [oumamichael108@gmail.com](mailto:oumamichael108@gmail.com)
 
 ---
 
