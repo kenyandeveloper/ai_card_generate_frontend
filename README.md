@@ -11,13 +11,21 @@ This repository contains the **frontend** of Flashlearn - **React frontend** wit
 
 ---
 
+## Project Showcase
+
+- **Pitch Deck**: [View PDF](https://gamma.app/docs/Flashlearn-66x4z7ri3qptyf1)
+- **Deployed Website**: [Visit Site](https://aiflashcard254.netlify.app/)
+- **Live Demo Video**: [Watch Video](https://youtu.be/vSqeCP2co_M)
+
+---
+
 ## Features
 
 - **User Authentication** (Sign in, Login, JWT session storage)
 - **Deck Management** (create, edit, delete decks)
 - **Flashcard Management** (add, edit, delete flashcards)
 - **Dashboard & Statistics**
-- AI FlashCard Generation** (freemium + paid subscription)
+- **AI FlashCard Generation** (freemium + paid subscription)
 - **Light and Dark Mode Toggle**
 - **Responsive Design for Seamless Use Across Devices**
 
@@ -32,6 +40,7 @@ This repository contains the **frontend** of Flashlearn - **React frontend** wit
 - **Tailwind CSS** - Minimal styling
 - **Vite** - Development bundler
 
+---
 
 ## Installation & Setup
 
@@ -54,6 +63,8 @@ npm run dev -- --open
 
 ```
 This starts the development server (default: http://localhost:5173)
+
+---
 
 ## API Integration
 
