@@ -49,6 +49,12 @@ FlashLearn is built using the following technologies:
 For support or inquiries, feel free to reach out:
 
 - 📧 **Email:** [Email:](mailto:iankabaka1@gmail.com)
+ 📧 **Email:** [Email:](mailto:oumamichael108@gmail.com)
+
+## 👥 Team Members github:
+Kabakadev
+Psychedelic-313
+OumaMichael 
 
 ## 📄 License
 This project is licensed under the MIT License 
