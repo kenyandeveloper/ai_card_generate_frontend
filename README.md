@@ -7,7 +7,7 @@
 
 ## 📝 Description
 
-This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium model** (5 free AI generations per month) and seamless **M-Pesa (IntaSend)** subscription payments (a feature that's currently being implemented), FlashLearn is built to enhance learning for students and lifelong learners alike.
+This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium model** (an upcoming feature that will grant the user 5 free AI generations per month) and seamless **M-Pesa (IntaSend)** subscription payments (a feature that's currently being implemented), FlashLearn is built to enhance learning for students and lifelong learners alike.
 
 ---
 
@@ -73,27 +73,21 @@ This starts the development server (default: http://localhost:5173)
 The frontend connects to the Flask backend for:
 - **Authentication** (`/signup`, `/login`, `/user`)
 - **Decks & Flashcards** (`/decks`, `/flashcards`)
-- **Dashboard & Progress** (`/dashboard`, `/progress`)
-- **Billing** (`/billing/checkout`, `/billing/status`)
-
-**API calls live in:**
-- `src/utils/billingApi.js` -> Billing-related requests
-- `src/utils/authApi.js` -> Authentication requests
 
 ---
 
 ## 💳 Billing & Freemium (Upcoming Feature)
 
 - Users get **5 free AI flashcard generations/month**.
-- An **Upgrade** button in the **NavBar** opens the Billing modal.
-- The upgrade price is KES 100/month
-- The **Billing Page** shows:
+- An **Upgrade** button in the **NavBar** will open the Billing modal.
+- The upgrade price will be KES 100/month
+- The **Billing Page** will show:
 
     - Subscription status
     - Free prompts remaining
     - Payment call-to-action 
 
-- Payments are handled by **Mpesa (IntaSend Hosted Checkout)**.
+- Payments will be handled by **Mpesa (IntaSend Hosted Checkout)**.
 - **Note**: This feature is upcoming and is still being implemented.
 
 ---
