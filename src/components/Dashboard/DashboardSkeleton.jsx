@@ -15,12 +15,12 @@ const DashboardSkeleton = ({ isMobile }) => {
     },
   };
 
-  const SkeletonBox = ({ className, children }) => (
+  const SkeletonBox = ({ className = "", children }) => (
     <motion.div
       variants={shimmer}
       initial="hidden"
       animate="visible"
-      className={`bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700 rounded-xl ${className}`}
+      className={`bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 rounded-xl ${className}`}
     >
       {children}
     </motion.div>
@@ -29,7 +29,7 @@ const DashboardSkeleton = ({ isMobile }) => {
   return (
     <div className="space-y-8">
       {/* Welcome Section Skeleton */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+      <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8">
         <div className="flex items-center gap-4 mb-4">
           <SkeletonBox className="w-12 h-12" />
           <div className="space-y-2 flex-1">
@@ -43,14 +43,14 @@ const DashboardSkeleton = ({ isMobile }) => {
         {/* Main Content Skeleton */}
         <div className="lg:col-span-8 space-y-6">
           {/* Progress Card Skeleton */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6">
             <div className="flex items-center gap-3 mb-6">
               <SkeletonBox className="w-10 h-10" />
               <SkeletonBox className="h-8 w-48" />
             </div>
 
             {/* Weekly Goal Progress Skeleton */}
-            <div className="mb-8 p-6 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+            <div className="mb-8 p-6 bg-slate-700/50 rounded-xl">
               <div className="flex justify-between items-center mb-3">
                 <SkeletonBox className="h-6 w-40" />
                 <SkeletonBox className="h-5 w-20" />
@@ -69,7 +69,7 @@ const DashboardSkeleton = ({ isMobile }) => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700"
+                  className="bg-slate-700/50 rounded-xl p-4 border border-slate-700"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <SkeletonBox className="w-8 h-8" />
@@ -82,7 +82,7 @@ const DashboardSkeleton = ({ isMobile }) => {
           </div>
 
           {/* Decks Section Skeleton */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <SkeletonBox className="w-10 h-10" />
@@ -98,10 +98,10 @@ const DashboardSkeleton = ({ isMobile }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                  className="bg-slate-800 rounded-2xl shadow-lg border border-slate-700 overflow-hidden"
                 >
                   {/* Header */}
-                  <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
+                  <div className="p-6 border-b border-slate-700 bg-slate-700/50">
                     <div className="flex items-start gap-3">
                       <SkeletonBox className="w-9 h-9" />
                       <SkeletonBox className="h-6 w-40 flex-1" />
@@ -167,9 +167,9 @@ const DashboardSkeleton = ({ isMobile }) => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+            className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
+            <div className="p-6 border-b border-slate-700 bg-slate-700/50">
               <div className="flex items-center gap-3">
                 <SkeletonBox className="w-10 h-10" />
                 <SkeletonBox className="h-6 w-32" />
@@ -189,7 +189,7 @@ const DashboardSkeleton = ({ isMobile }) => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-700/50"
                   >
                     <SkeletonBox className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <div className="space-y-1 flex-1">
@@ -200,7 +200,7 @@ const DashboardSkeleton = ({ isMobile }) => {
                 ))}
               </div>
 
-              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+              <div className="mt-6 p-4 bg-slate-700/50 rounded-xl">
                 <SkeletonBox className="h-4 w-3/4 mx-auto" />
               </div>
             </div>

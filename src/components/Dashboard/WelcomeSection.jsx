@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 const WelcomeSection = ({ username }) => {
   const theme = useTheme();
   const currentHour = new Date().getHours();
+
   const getGreeting = () => {
     if (currentHour < 12) return "Good morning";
     if (currentHour < 17) return "Good afternoon";
@@ -21,16 +22,13 @@ const WelcomeSection = ({ username }) => {
     >
       <Card
         sx={{
-          background: (theme) =>
-            theme.palette.mode === "dark"
-              ? `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.accent.light} 100%)`
-              : `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.accent.light} 100%)`,
-          border: (theme) => `1px solid ${theme.palette.accent.medium}`,
+          background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, rgba(96,165,250,0.08) 100%)`,
+          border: `1px solid rgba(148,163,184,0.25)`,
           position: "relative",
           overflow: "hidden",
         }}
       >
-        {/* Decorative elements using theme colors */}
+        {/* Decorative elements */}
         <Box
           sx={{
             position: "absolute",
@@ -38,8 +36,7 @@ const WelcomeSection = ({ username }) => {
             right: 0,
             width: 120,
             height: 120,
-            background: (theme) =>
-              `radial-gradient(circle, ${theme.palette.primary.main}20 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${theme.palette.primary.main}20 0%, transparent 70%)`,
             borderRadius: "50%",
           }}
         />
@@ -52,8 +49,7 @@ const WelcomeSection = ({ username }) => {
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -66,10 +62,7 @@ const WelcomeSection = ({ username }) => {
               variant="h4"
               sx={{
                 fontWeight: 700,
-                background: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? `linear-gradient(135deg, ${theme.palette.text.primary}, ${theme.palette.accent.highlight})`
-                    : `linear-gradient(135deg, ${theme.palette.text.primary}, ${theme.palette.primary.main})`,
+                background: `linear-gradient(135deg, ${theme.palette.text.primary}, ${theme.palette.primary.main})`,
                 backgroundClip: "text",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",

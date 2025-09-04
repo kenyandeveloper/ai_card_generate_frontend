@@ -1,18 +1,9 @@
 "use client";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  useTheme,
-} from "@mui/material";
+import { Box, Card, CardContent, Typography, Button } from "@mui/material";
 import { motion } from "framer-motion";
 import { Clock, Zap, Play } from "lucide-react";
 
 const QuickStudyCard = () => {
-  const theme = useTheme();
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -21,7 +12,7 @@ const QuickStudyCard = () => {
     >
       <Card
         sx={{
-          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+          background: "linear-gradient(135deg, #1e293b, #334155)", // dark gradient
           color: "white",
           position: "relative",
           overflow: "hidden",
@@ -35,7 +26,7 @@ const QuickStudyCard = () => {
             right: -20,
             width: 100,
             height: 100,
-            background: "rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.08)",
             borderRadius: "50%",
           }}
         />
@@ -58,7 +49,7 @@ const QuickStudyCard = () => {
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                bgcolor: "rgba(255,255,255,0.2)",
+                bgcolor: "rgba(255,255,255,0.15)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -85,7 +76,7 @@ const QuickStudyCard = () => {
           </Typography>
 
           {/* Features */}
-          <Box sx={{ mb: 4, space: 2 }}>
+          <Box sx={{ mb: 4 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
               <Zap size={16} color="rgba(255,255,255,0.8)" />
               <Typography
@@ -101,7 +92,7 @@ const QuickStudyCard = () => {
                 variant="body2"
                 sx={{ color: "rgba(255,255,255,0.8)" }}
               >
-                5-15 minute sessions
+                5–15 minute sessions
               </Typography>
             </Box>
           </Box>
@@ -112,12 +103,12 @@ const QuickStudyCard = () => {
             fullWidth
             startIcon={<Play size={20} />}
             sx={{
-              bgcolor: "white",
-              color: theme.palette.primary.main,
+              bgcolor: "#0ea5e9", // bright accent (sky-500)
+              color: "white",
               fontWeight: 600,
               py: 1.5,
               "&:hover": {
-                bgcolor: "rgba(255,255,255,0.9)",
+                bgcolor: "#38bdf8",
                 transform: "translateY(-2px)",
               },
               transition: "all 0.3s ease",

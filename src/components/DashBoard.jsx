@@ -14,9 +14,11 @@ import { calculateStats } from "../utils/statCalculations";
 const Dashboard = () => {
   const { user, isAuthenticated, loading } = useUser();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === "dark";
+  const theme = useTheme(); // still used for responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Force dark mode for the dashboard UI, regardless of system preference
+  const isDarkMode = true;
 
   const [decks, setDecks] = useState([]);
   const [progress, setProgress] = useState([]);
@@ -78,7 +80,7 @@ const Dashboard = () => {
         progress={progress}
         isLoading={isLoading}
         theme={theme}
-        isDarkMode={isDarkMode}
+        isDarkMode={isDarkMode} // always true
         navigate={navigate}
       />
     </DashboardLayout>
