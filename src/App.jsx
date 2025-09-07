@@ -11,7 +11,7 @@ import DeckView from "./components/DeckView/DeckView";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Study from "./components/Study/Study";
 import StudyMode from "./components/StudyModeComponents/StudyMode";
-
+import BillingReturn from "./components/Billing/BillingReturn.jsx";
 function AppContent() {
   return (
     <MUIThemeProvider theme={darkTheme}>
@@ -26,6 +26,7 @@ function AppContent() {
           <Route path="/mydecks/:deckId" element={<DeckView />} />
           <Route path="/study" element={<Study />} />
           <Route path="/study/:deckId" element={<StudyMode />} />
+          <Route path="/billing/return" element={<BillingReturn />} />
         </Routes>
       </Router>
     </MUIThemeProvider>

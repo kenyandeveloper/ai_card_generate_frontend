@@ -33,38 +33,107 @@ export default function AIGenerateModal({
   const { loading, error, cards, preview, insertIntoDeck, clear } =
     useAIGeneration();
 
+  const [localError, setLocalError] = useState("");
+
   useEffect(() => {
     if (!open) {
       setText("");
       setCount(12);
       setTab("direct");
+      setLocalError("");
       clear();
     }
   }, [open]);
+
+  // ✅ EXTRA: if the hook produced a *string* error (e.g. "Insert failed"),
+  // try to detect a paywall/quota case and open the Billing dialog.
+  useEffect(() => {
+    if (!error) return;
+    const s =
+      typeof error === "string"
+        ? error.toLowerCase()
+        : String(error?.message || "").toLowerCase();
+
+    if (
+      s.includes("paywall") ||
+      s.includes("quota") ||
+      s.includes("payment required") ||
+      s.includes("402")
+    ) {
+      window.dispatchEvent(new CustomEvent("open-billing"));
+    }
+  }, [error]);
 
   const disabled = useMemo(
     () => text.trim().length < 30 || loading,
     [text, loading]
   );
 
+  function handlePaywall(err) {
+    // axios-style error
+    const status = err?.response?.status;
+    const data = err?.response?.data;
+    if (status === 402 && data?.code === "PAYWALL") {
+      window.dispatchEvent(new CustomEvent("open-billing"));
+      setLocalError(
+        "Free quota exhausted. Please upgrade to continue generating cards."
+      );
+      return true;
+    }
+    return false;
+  }
+
   async function handleGenerateDirect() {
-    const { inserted } = await insertIntoDeck(deckId, text.trim(), count);
-    if (inserted > 0) {
-      onInserted?.(inserted);
-      onClose();
+    setLocalError("");
+    try {
+      const { inserted } = await insertIntoDeck(deckId, text.trim(), count);
+      if (inserted > 0) {
+        onInserted?.(inserted);
+        onClose();
+      }
+    } catch (err) {
+      if (!handlePaywall(err)) {
+        const msg =
+          err?.response?.data?.error ||
+          err?.message ||
+          "Generation failed. Please try again.";
+        setLocalError(msg);
+      }
     }
   }
 
   async function handlePreview() {
-    await preview(text.trim(), count);
-    setTab("preview");
+    setLocalError("");
+    try {
+      await preview(text.trim(), count);
+      setTab("preview");
+    } catch (err) {
+      if (!handlePaywall(err)) {
+        const msg =
+          err?.response?.data?.error ||
+          err?.message ||
+          "Preview failed. Please try again.";
+        setLocalError(msg);
+      }
+    }
   }
 
   async function handleConfirmInsert() {
-    const { inserted } = await insertIntoDeck(deckId, text.trim(), count);
-    if (inserted > 0) {
-      onInserted?.(inserted);
-      onClose();
+    setLocalError("");
+    try {
+      const { inserted } = await insertIntoDeck(deckId, text.trim(), count);
+      if (inserted > 0) {
+        onInserted?.(inserted);
+        onClose();
+      }
+    } catch (err) {
+      if (!handlePaywall(err)) {
+        const msg =
+          err?.response?.data?.error ||
+          err?.message ||
+          "Insert failed. Please try again.";
+        setLocalError(msg);
+      }
     }
   }
 
@@ -77,6 +146,9 @@ export default function AIGenerateModal({
             Paste study material (≥ 30 characters). Choose how many cards to
             generate.
           </Typography>
+
+          {localError && <Alert severity="error">{localError}</Alert>}
+          {error && !localError && <Alert severity="error">{error}</Alert>}
 
           <TextField
             label="Study text"
@@ -104,8 +176,6 @@ export default function AIGenerateModal({
           </FormControl>
 
           {loading && <LinearProgress />}
-
-          {error && <Alert severity="error">{error}</Alert>}
 
           {tab === "preview" && cards?.length > 0 && (
             <Box

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 const UserContext = createContext();
-const API_URL = "https://ai-card-generate-backend.onrender.com";
+const API_URL = "http://127.0.0.1:5000";
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
