@@ -7,7 +7,7 @@
 
 ## 📝 Description
 
-This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium model** (an upcoming feature that will grant the user 5 free AI generations per month) and seamless **M-Pesa (IntaSend)** subscription payments (a feature that's currently being implemented), FlashLearn is built to enhance learning for students and lifelong learners alike.
+This repository contains the **frontend** of Flashlearn - **React frontend** with a **Flask REST API backend**. It allows users to create decks, manage flashcards, track study progress, and even generate AI-powered flashcards. With a **freemium + subscription model** (5 free AI generations per month, then unlimited with a premium subscription powered by **IntaSend/M-Pesa payments**), FlashLearn is built to enhance learning for students and lifelong learners alike.
 
 ---
 
@@ -57,38 +57,40 @@ Before using FlashLearn, ensure you have the following:
 
 To install and run FlashLearn locally, follow these steps:
 
-```
+```bash
 git clone <repo-url>
 cd ai_card_generate_frontend
 npm install
 npm run dev -- --open
-
 ```
-This starts the development server (default: http://localhost:5173)
+
+This starts the development server (default: [http://localhost:5173](http://localhost:5173))
 
 ---
 
 ## 📎 API Integration
 
 The frontend connects to the Flask backend for:
+
 - **Authentication** (`/signup`, `/login`, `/user`)
 - **Decks & Flashcards** (`/decks`, `/flashcards`)
+- **Billing & Subscriptions** (`/billing/checkout`, `/billing/status`)
 
 ---
 
-## 💳 Billing & Freemium (Upcoming Feature)
+## 💳 Billing & Freemium (Now Live 🚀)
 
-- Users get **5 free AI flashcard generations/month**.
-- An **Upgrade** button in the **NavBar** will open the Billing modal.
-- The upgrade price will be KES 100/month
-- The **Billing Page** will show:
+- Every user gets **5 free AI flashcard generations/month**.
+- After the free tier, users can **upgrade to premium** for **KES 100/month**.
+- Premium unlocks **unlimited AI flashcard generation**.
+- Payments are processed through **M-Pesa / IntaSend Hosted Checkout**.
+- The **Billing Modal** (accessible via NavBar) allows:
 
-    - Subscription status
-    - Free prompts remaining
-    - Payment call-to-action 
+  - Upgrading your plan
+  - Viewing subscription status
+  - Tracking free prompts remaining
 
-- Payments will be handled by **Mpesa (IntaSend Hosted Checkout)**.
-- **Note**: This feature is upcoming and is still being implemented.
+✅ This integration is now fully functional in production. Users can pay securely and immediately unlock unlimited AI flashcard generation.
 
 ---
 
@@ -104,7 +106,6 @@ For support or inquiries, feel free to reach out:
 
 ## 📄 License
 
-This project is licensed under the MIT License 
+This project is licensed under the MIT License
 
 Built with ❤️ by the 3 Members
-

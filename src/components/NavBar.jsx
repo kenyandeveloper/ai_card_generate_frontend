@@ -136,7 +136,7 @@ const NavBar = () => {
             <ListItemIcon sx={{ minWidth: 36 }}>
               <BookOpen size={18} />
             </ListItemIcon>
-            <ListItemText primary="Upgrade (KES 50)" />
+            <ListItemText primary="Upgrade (KES 100)" />
           </ListItem>
         )}
 
