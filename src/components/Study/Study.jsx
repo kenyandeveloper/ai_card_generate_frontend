@@ -52,14 +52,11 @@ const Study = () => {
 
     const fetchUserStats = async () => {
       try {
-        const response = await fetch(
-          "https://ai-card-generate-backend.onrender.com/dashboard",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            },
-          }
-        );
+        const response = await fetch("http://127.0.0.1:5000/dashboard", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -94,17 +91,14 @@ const Study = () => {
 
   const updateWeeklyGoal = async () => {
     try {
-      const response = await fetch(
-        "https://ai-card-generate-backend.onrender.com/user/stats",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({ weekly_goal: newWeeklyGoal }),
-        }
-      );
+      const response = await fetch("http://127.0.0.1:5000/user/stats", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({ weekly_goal: newWeeklyGoal }),
+      });
 
       if (response.ok) {
         setUserStats((prev) => ({ ...prev, weekly_goal: newWeeklyGoal }));

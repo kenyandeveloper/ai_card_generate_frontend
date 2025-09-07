@@ -14,10 +14,17 @@ export default function useAIGeneration() {
       const res = await aiGenerate({ text, count }); // no deck_id -> preview
       setCards(res.cards || []);
       setGenerationId(res.generation_id || null);
+      return res;
     } catch (e) {
-      setError(e?.response?.data?.error || "Generation failed");
+      const msg =
+        e?.response?.data?.error ||
+        e?.response?.data?.detail ||
+        e?.message ||
+        "Generation failed";
+      setError(msg);
       setCards([]);
       setGenerationId(null);
+      throw e; // 🔑 bubble up so modal can detect PAYWALL
     } finally {
       setLoading(false);
     }
@@ -28,14 +35,18 @@ export default function useAIGeneration() {
     setError(null);
     try {
       const res = await aiGenerate({ text, count, deck_id: deckId });
-      // server inserts directly; no preview returned is required to proceed
       return {
         inserted: res.inserted_count || 0,
         generationId: res.generation_id,
       };
     } catch (e) {
-      setError(e?.response?.data?.error || "Insert failed");
-      return { inserted: 0, generationId: null };
+      const msg =
+        e?.response?.data?.error ||
+        e?.response?.data?.detail ||
+        e?.message ||
+        "Insert failed";
+      setError(msg);
+      throw e; // 🔑 bubble up so modal can detect PAYWALL
     } finally {
       setLoading(false);
     }
