@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { Formik, Form } from "formik";
@@ -32,11 +32,71 @@ const validationSchema = Yup.object({
 });
 
 const Login = () => {
-  const { login } = useUser();
+  const { user, login, requestOtp, verifyOtp } = useUser();
   const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  // OTP state
+  const [otpPhase, setOtpPhase] = useState(false); // false = password step, true = OTP step
+  const [otpId, setOtpId] = useState(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [devCode, setDevCode] = useState(""); // optional (dev only)
+
+  // UI state
+  const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleClickShowPassword = () => setShowPassword((s) => !s);
+
+  // If already logged in, bounce to dashboard
+  useEffect(() => {
+    if (user) navigate("/dashboard");
+  }, [user, navigate]);
+
+  // Step 1: password login
+  const handlePasswordStep = async (email, password) => {
+    setErrorMsg("");
+    const result = await login(email, password);
+    if (result?.success) {
+      navigate("/dashboard");
+      return;
+    }
+    // Email not verified → request verification OTP
+    const otpRes = await requestOtp(email);
+    // { status: "sent" | "skipped", otp_id, dev_code? }
+    if (otpRes?.status === "sent") {
+      setOtpId(otpRes.otp_id ?? null);
+      setDevCode(otpRes.dev_code ?? "");
+      setOtpPhase(true);
+      return;
+    }
+    if (otpRes?.status === "skipped") {
+      // Already verified (edge case) — try login again to get token
+      const retry = await login(email, password);
+      if (retry?.success) {
+        navigate("/dashboard");
+        return;
+      }
+      throw new Error(
+        "Verification step skipped unexpectedly. Please try again."
+      );
+    }
+    throw new Error("Failed to request verification code. Please try again.");
+  };
+
+  // Step 2: OTP verify
+  const handleOtpStep = async (email) => {
+    if (!otpId) throw new Error("Missing OTP session. Please resend the code.");
+    if (!otpCode.trim()) throw new Error("Please enter the OTP code.");
+    const res = await verifyOtp(email, otpId, otpCode.trim()); // stores token & loads user
+    if (res?.success) {
+      navigate("/dashboard");
+      return;
+    }
+    throw new Error("OTP verification failed. Please try again.");
+  };
 
   return (
     <Container
@@ -74,41 +134,45 @@ const Login = () => {
               <Typography
                 component="h1"
                 variant="h4"
-                sx={{
-                  fontWeight: "bold",
-                  color: "text.primary",
-                  mb: 1,
-                }}
+                sx={{ fontWeight: "bold", color: "text.primary", mb: 1 }}
               >
                 Welcome Back
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: "text.secondary",
-                }}
-              >
-                Sign in to continue learning
+              <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                {otpPhase
+                  ? "Verify your email to continue"
+                  : "Sign in to continue learning"}
               </Typography>
             </Box>
 
             <Formik
               initialValues={{ email: "", password: "" }}
               validationSchema={validationSchema}
-              onSubmit={async (values, { setSubmitting, setErrors }) => {
+              onSubmit={async (
+                values,
+                { setSubmitting: setFormikSubmitting }
+              ) => {
+                setSubmitting(true);
+                setFormikSubmitting(true);
+                setErrorMsg("");
                 try {
-                  const success = await login(values.email, values.password);
-                  if (success) {
-                    navigate("/dashboard");
+                  if (!otpPhase) {
+                    await handlePasswordStep(values.email, values.password);
+                  } else {
+                    await handleOtpStep(values.email);
                   }
-                } catch (error) {
-                  setErrors({ general: error.message || "Login failed" });
+                } catch (err) {
+                  setErrorMsg(
+                    err?.message || "Something went wrong. Please try again."
+                  );
+                } finally {
+                  setSubmitting(false);
+                  setFormikSubmitting(false);
                 }
-                setSubmitting(false);
               }}
             >
               {({
-                isSubmitting,
+                isSubmitting: isFormikSubmitting,
                 errors,
                 touched,
                 handleChange,
@@ -116,9 +180,9 @@ const Login = () => {
                 values,
               }) => (
                 <Form>
-                  {errors.general && (
+                  {errorMsg && (
                     <Alert severity="error" sx={{ mb: 2 }}>
-                      {errors.general}
+                      {errorMsg}
                     </Alert>
                   )}
 
@@ -131,36 +195,110 @@ const Login = () => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={touched.email && Boolean(errors.email)}
-                    helperText={touched.email && values.email === "" ? errors.email : ""}
+                    helperText={touched.email && errors.email}
                     sx={{ mb: 2 }}
+                    disabled={otpPhase} // lock email during OTP phase
                   />
 
-                  <TextField
-                    fullWidth
-                    id="password"
-                    name="password"
-                    label="Password"
-                    type={showPassword ? "text" : "password"}
-                    value={values.password}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    error={touched.password && Boolean(errors.password)}
-                    helperText={touched.password && values.password === "" ? errors.password : ""}
-                    sx={{ mb: 3 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleClickShowPassword}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
+                  {!otpPhase && (
+                    <TextField
+                      fullWidth
+                      id="password"
+                      name="password"
+                      label="Password"
+                      type={showPassword ? "text" : "password"}
+                      value={values.password}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={touched.password && Boolean(errors.password)}
+                      helperText={touched.password && errors.password}
+                      sx={{ mb: 3 }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleClickShowPassword}
+                              edge="end"
+                            >
+                              {showPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+
+                  {otpPhase && (
+                    <>
+                      <TextField
+                        fullWidth
+                        id="otpCode"
+                        name="otpCode"
+                        label="Enter OTP"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+
+                      {devCode ? (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Dev code: <strong>{devCode}</strong>
+                        </Alert>
+                      ) : null}
+
+                      <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+                        <Button
+                          variant="text"
+                          onClick={async () => {
+                            // Resend OTP
+                            setErrorMsg("");
+                            setResending(true);
+                            try {
+                              const res = await requestOtp(values.email);
+                              if (res?.status === "sent") {
+                                setOtpId(res.otp_id ?? null);
+                                setDevCode(res.dev_code ?? "");
+                              } else if (res?.status === "skipped") {
+                                // If somehow already verified now, try to finalize login
+                                setOtpPhase(false);
+                              } else {
+                                setErrorMsg(
+                                  "Failed to resend code. Please try again."
+                                );
+                              }
+                            } catch (e) {
+                              setErrorMsg(
+                                e?.message || "Failed to resend code."
+                              );
+                            } finally {
+                              setResending(false);
+                            }
+                          }}
+                        >
+                          {resending ? "Resending..." : "Resend code"}
+                        </Button>
+
+                        <Button
+                          variant="text"
+                          onClick={() => {
+                            // Go back to password step, allow editing email/password again
+                            setOtpPhase(false);
+                            setOtpId(null);
+                            setOtpCode("");
+                            setDevCode("");
+                            setErrorMsg("");
+                          }}
+                        >
+                          Use a different email
+                        </Button>
+                      </Box>
+                    </>
+                  )}
 
                   <Button
                     component={motion.button}
@@ -170,7 +308,7 @@ const Login = () => {
                     size="large"
                     variant="contained"
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={submitting || isFormikSubmitting || resending}
                     sx={{
                       bgcolor: (theme) => theme.palette.primary.main,
                       color: (theme) =>
@@ -183,7 +321,13 @@ const Login = () => {
                       mb: 2,
                     }}
                   >
-                    {isSubmitting ? "Signing in..." : "Sign in"}
+                    {submitting || isFormikSubmitting
+                      ? otpPhase
+                        ? "Verifying OTP..."
+                        : "Signing in..."
+                      : otpPhase
+                      ? "Verify OTP"
+                      : "Sign in"}
                   </Button>
 
                   <Typography
@@ -191,19 +335,29 @@ const Login = () => {
                     align="center"
                     sx={{ color: "text.secondary" }}
                   >
-                    Don't have an account?{" "}
+                    Don&apos;t have an account?{" "}
                     <Link
                       component={RouterLink}
                       to="/signup"
                       sx={{
-                        color: theme => theme.palette.secondary.main,
+                        color: (theme) => theme.palette.secondary.main,
                         textDecoration: "none",
-                        "&:hover": {
-                          textDecoration: "underline",
-                        },
+                        "&:hover": { textDecoration: "underline" },
                       }}
                     >
                       Sign up here
+                    </Link>
+                    <br />
+                    <Link
+                      component={RouterLink}
+                      to="/forgot-password"
+                      sx={{
+                        color: (theme) => theme.palette.secondary.main,
+                        textDecoration: "none",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      Forgot your password?
                     </Link>
                   </Typography>
                 </Form>

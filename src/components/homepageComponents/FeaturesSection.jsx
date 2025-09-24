@@ -1,3 +1,4 @@
+// src/components/homepageComponents/FeaturesSection.jsx
 import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
 import {
   GraduationCap,
@@ -6,6 +7,7 @@ import {
   BookOpen,
   Brain,
   Sparkles,
+  BadgeCheck,
 } from "lucide-react";
 import FeatureCard from "./FeatureCard";
 
@@ -48,6 +50,16 @@ const features = [
   },
 ];
 
+// Gamified preview (locked until Level 2)
+const lockedFeature = {
+  Icon: BadgeCheck,
+  title: "Achievements & Badges",
+  description:
+    "Collect badges as you hit milestones and level up your learning.",
+  locked: true,
+  lockReason: "Unlock at Level 2 (keep your streak 🔥)",
+};
+
 export default function FeaturesSection() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -55,20 +67,20 @@ export default function FeaturesSection() {
   return (
     <Box sx={{ mb: isMobile ? 6 : 10 }}>
       <Typography
-        variant={isMobile ? "h4" : "h3"} // Smaller heading on mobile
+        variant={isMobile ? "h4" : "h3"}
         component="h2"
         align="center"
         sx={{
           mb: 2,
           fontWeight: "bold",
           color: "text.primary",
-          fontSize: isMobile ? "1.75rem" : "2.25rem", // Responsive font size
+          fontSize: isMobile ? "1.75rem" : "2.25rem",
         }}
       >
         Features Designed for Effective Learning
       </Typography>
       <Typography
-        variant={isMobile ? "body1" : "h6"} // Smaller subheading on mobile
+        variant={isMobile ? "body1" : "h6"}
         align="center"
         sx={{
           mb: isMobile ? 4 : 6,
@@ -76,7 +88,7 @@ export default function FeaturesSection() {
           maxWidth: "800px",
           mx: "auto",
           fontWeight: "normal",
-          fontSize: isMobile ? "1rem" : "1.25rem", // Responsive font size
+          fontSize: isMobile ? "1rem" : "1.25rem",
         }}
       >
         Our platform combines proven learning techniques with modern technology
@@ -89,6 +101,11 @@ export default function FeaturesSection() {
             <FeatureCard {...feature} />
           </Grid>
         ))}
+
+        {/* Locked teaser card */}
+        <Grid item xs={12} sm={6} md={4}>
+          <FeatureCard {...lockedFeature} />
+        </Grid>
       </Grid>
     </Box>
   );

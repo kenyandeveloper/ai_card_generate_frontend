@@ -1,33 +1,25 @@
 // src/components/Study/StudyContent.jsx
 import { Box, Container, Typography, Pagination } from "@mui/material";
-import StatsOverview from "./StatsOverview";
 import DecksList from "./DecksList";
 
 export default function StudyContent({
-  userStats,
   decks,
   pagination,
   handlePageChange,
-  onUpdateGoalClick,
   onDeckClick,
   onCreateDeckClick,
+  extraTop, // 👈 NEW: render arbitrary content right under the title
 }) {
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography
-        variant="h4"
-        component="h1"
-        sx={{ mb: 4, fontWeight: "bold" }}
-      >
+    <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 } }}>
+      <Typography variant="h4" sx={{ mb: 2.5, fontWeight: 800 }}>
         Study Dashboard
       </Typography>
 
-      <StatsOverview
-        userStats={userStats}
-        onUpdateGoalClick={onUpdateGoalClick}
-      />
+      {/* Optional slot under the title */}
+      {extraTop}
 
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+      <Typography variant="h5" sx={{ mt: 2, mb: 1.5, fontWeight: 700 }}>
         Your Decks
       </Typography>
 

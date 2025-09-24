@@ -1,3 +1,4 @@
+// src/components/homepageComponents/FeatureCard.jsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -9,94 +10,134 @@ import {
   useTheme,
   Box,
   useMediaQuery,
+  Chip,
+  Tooltip,
 } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
-export default function FeatureCard({ Icon, title, description }) {
+export default function FeatureCard({
+  Icon,
+  title,
+  description,
+  locked = false,
+  lockReason,
+}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDarkMode = theme.palette.mode === "dark";
 
-  // Custom icon background colors based on theme
   const iconBgColor = isDarkMode
-    ? "rgba(124, 58, 237, 0.15)" // Subtle purple in dark mode
-    : "rgba(124, 58, 237, 0.08)"; // Very light purple in light mode
+    ? "rgba(124, 58, 237, 0.15)"
+    : "rgba(124, 58, 237, 0.08)";
 
   const iconColor = theme.palette.primary.main;
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02, y: -5 }}
+      whileHover={{ scale: locked ? 1.0 : 1.02, y: locked ? 0 : -5 }}
       transition={{ duration: 0.2 }}
     >
-      <Card
-        sx={{
-          bgcolor: "background.paper",
-          height: "100%",
-          transition: "all 0.3s ease",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-          "&:hover": {
-            boxShadow: "0 12px 24px rgba(0,0,0,0.1)",
-            borderColor: isDarkMode ? "primary.main" : "primary.light",
-          },
-        }}
+      <Tooltip
+        title={locked ? lockReason || "Unlock this feature by leveling up" : ""}
+        disableHoverListener={!locked}
+        arrow
       >
-        <CardContent
-          sx={{
-            p: isMobile ? 3 : 4, // Reduce padding on mobile
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: isMobile ? 1.5 : 2, // Reduce gap on mobile
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: iconBgColor,
-              padding: "12px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "48px",
-              height: "48px",
-              mb: isMobile ? 1.5 : 2, // Reduce margin on mobile
-              boxShadow: isDarkMode
-                ? "none"
-                : "0 4px 8px rgba(124, 58, 237, 0.1)",
-            }}
-          >
-            <Icon
-              style={{
-                color: iconColor,
-                strokeWidth: 2.5,
+        <Box sx={{ position: "relative" }}>
+          {locked && (
+            <Chip
+              icon={<LockOutlinedIcon />}
+              label="Locked"
+              size="small"
+              sx={{
+                position: "absolute",
+                top: 12,
+                right: 12,
+                zIndex: 2,
+                bgcolor: "action.selected",
+                color: "text.primary",
+                "& .MuiChip-icon": { color: "text.secondary" },
               }}
             />
-          </Box>
-          <Typography
-            variant={isMobile ? "subtitle1" : "h6"} // Smaller heading on mobile
+          )}
+
+          <Card
             sx={{
-              color: "text.primary",
-              fontWeight: 600,
-              textAlign: "center",
-              mb: isMobile ? 0.5 : 1, // Reduce margin on mobile
-              fontSize: isMobile ? "1.1rem" : "1.25rem", // Responsive font size
+              bgcolor: "background.paper",
+              height: "100%",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+              ...(locked
+                ? {
+                    opacity: 0.75,
+                    filter: "grayscale(0.25)",
+                    pointerEvents: "none",
+                  }
+                : {
+                    "&:hover": {
+                      boxShadow: "0 12px 24px rgba(0,0,0,0.1)",
+                      borderColor: isDarkMode
+                        ? "primary.main"
+                        : "primary.light",
+                    },
+                  }),
             }}
           >
-            {title}
-          </Typography>
-          <Typography
-            variant={isMobile ? "body2" : "body1"} // Smaller text on mobile
-            sx={{
-              color: "text.secondary",
-              textAlign: "center",
-              lineHeight: 1.6,
-              fontSize: isMobile ? "0.875rem" : "1rem", // Responsive font size
-            }}
-          >
-            {description}
-          </Typography>
-        </CardContent>
-      </Card>
+            <CardContent
+              sx={{
+                p: isMobile ? 3 : 4,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: isMobile ? 1.5 : 2,
+              }}
+            >
+              <Box
+                sx={{
+                  backgroundColor: iconBgColor,
+                  p: 1.5,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 48,
+                  height: 48,
+                  mb: isMobile ? 1.5 : 2,
+                  boxShadow: isDarkMode
+                    ? "none"
+                    : "0 4px 8px rgba(124, 58, 237, 0.1)",
+                }}
+              >
+                <Icon style={{ color: iconColor, strokeWidth: 2.5 }} />
+              </Box>
+
+              <Typography
+                variant={isMobile ? "subtitle1" : "h6"}
+                sx={{
+                  color: "text.primary",
+                  fontWeight: 600,
+                  textAlign: "center",
+                  mb: isMobile ? 0.5 : 1,
+                  fontSize: isMobile ? "1.1rem" : "1.25rem",
+                }}
+              >
+                {title}
+              </Typography>
+
+              <Typography
+                variant={isMobile ? "body2" : "body1"}
+                sx={{
+                  color: "text.secondary",
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                  fontSize: isMobile ? "0.875rem" : "1rem",
+                }}
+              >
+                {description}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+      </Tooltip>
     </motion.div>
   );
 }
@@ -105,4 +146,6 @@ FeatureCard.propTypes = {
   Icon: PropTypes.elementType.isRequired,
   title: PropTypes.string.isRequired,
   description: PropTypes.string.isRequired,
+  locked: PropTypes.bool,
+  lockReason: PropTypes.string,
 };

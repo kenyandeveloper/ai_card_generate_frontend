@@ -1,4 +1,6 @@
+// src/components/Dashboard/ProgressCard.jsx
 "use client";
+
 import {
   Box,
   Card,
@@ -9,10 +11,15 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { Trophy, Target, Clock, Brain, TrendingUp, Zap } from "lucide-react";
+import { useTheme } from "@mui/material/styles";
 
-const ProgressCard = ({ stats, theme, isDarkMode }) => {
+const ProgressCard = ({ stats }) => {
+  const theme = useTheme();
+
+  const weeklyGoal = stats?.weekly_goal || 200; // sensible fallback
+  const studied = stats?.total_flashcards_studied || 0;
   const progressPercentage = Math.min(
-    (stats.total_flashcards_studied / stats.weekly_goal) * 100,
+    weeklyGoal ? (studied / weeklyGoal) * 100 : 0,
     100
   );
 
@@ -20,28 +27,26 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
     {
       icon: Trophy,
       label: "Cards Mastered",
-      value: stats.cards_mastered,
+      value: stats?.cards_mastered ?? 0,
       color: theme.palette.warning.main,
     },
     {
       icon: TrendingUp,
       label: "Retention Rate",
-      value: `${stats.retention_rate}%`,
+      value: `${stats?.retention_rate ?? 0}%`,
       color: theme.palette.primary.main,
     },
     {
       icon: Clock,
       label: "Avg. Study Time",
-      value: `${stats.average_study_time}min`,
-      color: theme.palette.secondary.main,
+      value: `${stats?.average_study_time ?? 0}min`,
+      color: theme.palette.secondary.main || theme.palette.info.main,
     },
     {
       icon: Brain,
       label: "Mastery Level",
-      value: `${stats.mastery_level}%`,
-      color:
-        (theme.palette.accent && theme.palette.accent.highlight) ||
-        theme.palette.info.main,
+      value: `${stats?.mastery_level ?? 0}%`,
+      color: theme.palette.info.main,
     },
   ];
 
@@ -56,9 +61,9 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
           mb: { xs: 3, sm: 4 },
           background: (t) =>
             `linear-gradient(135deg, ${t.palette.background.paper}, rgba(99,102,241,0.08))`,
-          color: "white",
-          border: "1px solid rgba(148,163,184,0.25)",
-          boxShadow: "0 10px 30px rgba(2,6,23,0.6)",
+          border: 1,
+          borderColor: "divider",
+          boxShadow: "0 10px 30px rgba(2,6,23,0.35)",
         }}
       >
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -68,7 +73,10 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                background: (t) =>
+                  `linear-gradient(135deg, ${t.palette.primary.main}, ${
+                    t.palette.secondary.main || t.palette.primary.dark
+                  })`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -76,7 +84,10 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
             >
               <Target size={24} color="white" />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: "white" }}>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, color: "text.primary" }}
+            >
               Learning Progress
             </Typography>
           </Box>
@@ -86,15 +97,9 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
             sx={{
               mb: 4,
               background: (t) =>
-                `linear-gradient(135deg, ${
-                  (t.palette.accent && t.palette.accent.light) ||
-                  "rgba(255,255,255,0.04)"
-                }, ${t.palette.background.paper})`,
-              border: (t) =>
-                `1px solid ${
-                  (t.palette.accent && t.palette.accent.medium) ||
-                  "rgba(148,163,184,0.25)"
-                }`,
+                `linear-gradient(135deg, rgba(255,255,255,0.03), ${t.palette.background.paper})`,
+              border: 1,
+              borderColor: "divider",
             }}
           >
             <CardContent sx={{ p: 3 }}>
@@ -108,7 +113,7 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
               >
                 <Typography
                   variant="h6"
-                  sx={{ fontWeight: 600, color: "white" }}
+                  sx={{ fontWeight: 600, color: "text.primary" }}
                 >
                   Weekly Goal Progress
                 </Typography>
@@ -116,35 +121,37 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
                   <Zap size={16} color={theme.palette.primary.main} />
                   <Typography
                     variant="body2"
-                    sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 500 }}
+                    sx={{ color: "text.secondary", fontWeight: 500 }}
                   >
-                    {stats.total_flashcards_studied} / {stats.weekly_goal}
+                    {studied} / {weeklyGoal}
                   </Typography>
                 </Box>
               </Box>
 
-              <Box sx={{ position: "relative" }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={progressPercentage}
-                  sx={{
-                    height: 12,
+              <LinearProgress
+                variant="determinate"
+                value={progressPercentage}
+                sx={{
+                  height: 12,
+                  borderRadius: 6,
+                  bgcolor: "action.hover",
+                  "& .MuiLinearProgress-bar": {
                     borderRadius: 6,
-                    bgcolor: "rgba(255,255,255,0.12)",
-                    "& .MuiLinearProgress-bar": {
-                      borderRadius: 6,
-                      background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                    },
-                  }}
-                />
-                <Box sx={{ mt: 1, textAlign: "right" }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 500 }}
-                  >
-                    {Math.round(progressPercentage)}% Complete
-                  </Typography>
-                </Box>
+                    background: `linear-gradient(90deg, ${
+                      theme.palette.primary.main
+                    }, ${
+                      theme.palette.secondary.main || theme.palette.primary.dark
+                    })`,
+                  },
+                }}
+              />
+              <Box sx={{ mt: 1, textAlign: "right" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                >
+                  {Math.round(progressPercentage)}% Complete
+                </Typography>
               </Box>
             </CardContent>
           </Card>
@@ -161,14 +168,9 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
                   <Card
                     sx={{
                       textAlign: "center",
-                      background: (t) =>
-                        (t.palette.accent && t.palette.accent.light) ||
-                        "rgba(255,255,255,0.04)",
-                      border: (t) =>
-                        `1px solid ${
-                          (t.palette.accent && t.palette.accent.medium) ||
-                          "rgba(148,163,184,0.25)"
-                        }`,
+                      bgcolor: "background.paper",
+                      border: 1,
+                      borderColor: "divider",
                       transition: "all 0.3s ease",
                       "&:hover": {
                         transform: "translateY(-4px)",
@@ -197,17 +199,15 @@ const ProgressCard = ({ stats, theme, isDarkMode }) => {
                           <stat.icon size={24} color={stat.color} />
                         </Box>
                       </Box>
-
                       <Typography
                         variant="h4"
-                        sx={{ fontWeight: 700, color: "white", mb: 1 }}
+                        sx={{ fontWeight: 700, color: "text.primary", mb: 1 }}
                       >
                         {stat.value}
                       </Typography>
-
                       <Typography
                         variant="body2"
-                        sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 500 }}
+                        sx={{ color: "text.secondary", fontWeight: 500 }}
                       >
                         {stat.label}
                       </Typography>

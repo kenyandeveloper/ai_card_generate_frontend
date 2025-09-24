@@ -1,3 +1,4 @@
+// src/components/homepageComponents/Navbar.jsx
 import {
   AppBar,
   Toolbar,
@@ -7,38 +8,60 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Chip,
   useMediaQuery,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import ThemeToggle from "../ThemeComponents/ThemeToggle";
-import MenuIcon from "@mui/icons-material/Menu"; // Import the menu icon
-import { useState } from "react";
+import MenuIcon from "@mui/icons-material/Menu";
+import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
+import { useContext, useMemo, useState } from "react";
+import { useUser } from "../context/UserContext";
+
+function StreakPill() {
+  // Try to pull a real streak from context; otherwise default.
+  const { user } = useUser?.() || {};
+  const streakDays = useMemo(() => {
+    if (user?.streakDays != null) return user.streakDays;
+    if (user?.stats?.streak != null) return user.stats.streak;
+    return 2; // safe default until backend hooks in
+  }, [user]);
+
+  return (
+    <Chip
+      icon={<WhatshotRoundedIcon />}
+      label={`Day ${streakDays}`}
+      size="small"
+      sx={{
+        bgcolor: "action.selected",
+        color: "text.primary",
+        "& .MuiChip-icon": { color: "warning.main" },
+        fontWeight: 600,
+      }}
+      aria-label={`Current learning streak: Day ${streakDays}`}
+    />
+  );
+}
 
 export default function Navbar() {
-  // Use the useMediaQuery hook to detect mobile screens
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const [anchorEl, setAnchorEl] = useState(null);
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
 
   return (
     <AppBar
       position="sticky"
       elevation={0}
       sx={{
-        bgcolor: "background.nav",
+        bgcolor: "background.nav", // ensure this exists in theme (see theme notes below)
         borderBottom: 1,
         borderColor: "divider",
+        backdropFilter: "saturate(180%) blur(6px)",
       }}
     >
       <Toolbar>
-        {/* Flashlearn Logo */}
+        {/* Brand */}
         <Typography
           variant="h5"
           component="h1"
@@ -47,42 +70,36 @@ export default function Navbar() {
           Flashlearn
         </Typography>
 
-        {/* Mobile View */}
+        {/* Grow */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Mobile */}
         {isMobile ? (
           <>
-            {/* Centered ThemeToggle */}
-            <Box
-              sx={{
-                flexGrow: 1, // Takes up remaining space
-                display: "flex",
-                justifyContent: "center", // Centers the ThemeToggle
-              }}
-            >
-              <ThemeToggle />
-            </Box>
+            {/* Streak pill stays visible on mobile */}
+            <StreakPill />
 
-            {/* Menu Icon */}
             <IconButton
               color="inherit"
               aria-label="menu"
               onClick={handleMenuOpen}
+              sx={{ ml: 1 }}
             >
               <MenuIcon />
             </IconButton>
 
-            {/* Mobile Menu */}
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
             >
-              <MenuItem
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              ></MenuItem>
+              <MenuItem disabled>
+                {/* tiny hint of gamification */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <WhatshotRoundedIcon color="warning" fontSize="small" />
+                  <Typography variant="body2">Keep your streak!</Typography>
+                </Box>
+              </MenuItem>
               <MenuItem
                 onClick={handleMenuClose}
                 component={RouterLink}
@@ -100,11 +117,11 @@ export default function Navbar() {
             </Menu>
           </>
         ) : (
-          // Desktop View
+          // Desktop
           <Box
             sx={{ display: "flex", gap: 2, alignItems: "center", ml: "auto" }}
           >
-            <ThemeToggle />
+            <StreakPill />
             <Button
               variant="outlined"
               component={RouterLink}
@@ -127,9 +144,7 @@ export default function Navbar() {
               sx={{
                 bgcolor: "primary.main",
                 color: "primary.contrastText",
-                "&:hover": {
-                  bgcolor: "primary.dark",
-                },
+                "&:hover": { bgcolor: "primary.dark" },
               }}
             >
               Get Started

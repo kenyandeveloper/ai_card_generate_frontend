@@ -1,12 +1,13 @@
-import { Box, Container, Grid, Typography, Divider } from "@mui/material";
+// src/components/homepageComponents/Footer.jsx
+import { Box, Container, Typography } from "@mui/material";
 
-export default function Footer({ isDarkMode }) {
+export default function Footer() {
   return (
     <Box
       component="footer"
       sx={{
         py: 6,
-        bgcolor: isDarkMode ? "background.paper" : "background.nav",
+        bgcolor: "background.paper",
         borderTop: 1,
         borderColor: "divider",
       }}
