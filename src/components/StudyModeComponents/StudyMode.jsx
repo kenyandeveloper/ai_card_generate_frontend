@@ -13,7 +13,7 @@ import { useStudySession } from "./StudyMode/useStudySession";
 import LoadingState from "./LoadingState";
 import EmptyDeckState from "./StudyMode/EmptyDeckState";
 
-const API_URL = "https://ai-card-generate-backend.onrender.com";
+const API_URL = "http://127.0.0.1:5000";
 
 const StudyMode = () => {
   const { deckId } = useParams();

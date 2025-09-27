@@ -1,18 +1,20 @@
+// src/components/Dashboard/WelcomeSection.jsx
 "use client";
+
 import { Box, Typography, Card, CardContent } from "@mui/material";
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp } from "lucide-react";
 import { useTheme } from "@mui/material/styles";
+import { useUser } from "../context/UserContext"; // adjust path if needed
 
 const WelcomeSection = ({ username }) => {
   const theme = useTheme();
-  const currentHour = new Date().getHours();
-
-  const getGreeting = () => {
-    if (currentHour < 12) return "Good morning";
-    if (currentHour < 17) return "Good afternoon";
-    return "Good evening";
-  };
+  const { user } = useUser?.() || {};
+  const name =
+    username || user?.username || user?.email?.split("@")[0] || "Learner";
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
     <motion.div
@@ -22,25 +24,26 @@ const WelcomeSection = ({ username }) => {
     >
       <Card
         sx={{
-          background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, rgba(96,165,250,0.08) 100%)`,
-          border: `1px solid rgba(148,163,184,0.25)`,
+          background: (t) =>
+            `linear-gradient(135deg, ${t.palette.background.paper} 0%, rgba(99,102,241,0.08) 100%)`,
+          border: 1,
+          borderColor: "divider",
           position: "relative",
           overflow: "hidden",
         }}
       >
-        {/* Decorative elements */}
         <Box
           sx={{
             position: "absolute",
-            top: 0,
-            right: 0,
-            width: 120,
-            height: 120,
-            background: `radial-gradient(circle, ${theme.palette.primary.main}20 0%, transparent 70%)`,
+            top: -40,
+            right: -40,
+            width: 160,
+            height: 160,
+            background: (t) =>
+              `radial-gradient(circle, ${t.palette.primary.main}20 0%, transparent 70%)`,
             borderRadius: "50%",
           }}
         />
-
         <CardContent
           sx={{ p: { xs: 3, sm: 4 }, position: "relative", zIndex: 1 }}
         >
@@ -49,7 +52,10 @@ const WelcomeSection = ({ username }) => {
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                background: (t) =>
+                  `linear-gradient(135deg, ${t.palette.primary.main}, ${
+                    t.palette.secondary.main || t.palette.primary.dark
+                  })`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -62,13 +68,14 @@ const WelcomeSection = ({ username }) => {
               variant="h4"
               sx={{
                 fontWeight: 700,
-                background: `linear-gradient(135deg, ${theme.palette.text.primary}, ${theme.palette.primary.main})`,
+                background: (t) =>
+                  `linear-gradient(135deg, ${t.palette.text.primary}, ${t.palette.primary.main})`,
                 backgroundClip: "text",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
             >
-              {getGreeting()}, {username}!
+              {greeting}, {name}!
             </Typography>
           </Box>
 
@@ -77,7 +84,7 @@ const WelcomeSection = ({ username }) => {
             <Typography
               variant="body1"
               sx={{
-                color: theme.palette.text.secondary,
+                color: "text.secondary",
                 fontSize: { xs: "1rem", sm: "1.125rem" },
               }}
             >

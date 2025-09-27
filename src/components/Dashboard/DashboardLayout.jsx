@@ -1,22 +1,58 @@
+// src/components/Dashboard/DashboardLayout.jsx
 "use client";
 
+import { Box, Container } from "@mui/material";
 import NavBar from "../NavBar";
+import MetaStrip from "../common/MetaStrip"; // ⬅️ use the shared component
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        bgcolor: "background.default",
+      }}
+    >
       <NavBar />
-      <div className="relative">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-grid-slate-800 bg-[size:20px_20px] opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-900/50 to-transparent" />
 
-        {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+      {/* subtle background treatment */}
+      <Box
+        sx={{
+          position: "relative",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(1000px 300px at 20% -10%, rgba(99,102,241,0.08), transparent 60%), radial-gradient(800px 250px at 80% -10%, rgba(56,189,248,0.06), transparent 60%)",
+            pointerEvents: "none",
+          },
+        }}
+      >
+        <Container
+          maxWidth="lg"
+          sx={{
+            pt: { xs: 2, md: 3 },
+            pb: { xs: 6, md: 10 },
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {/* Ephemeral top strip — shows briefly, then disappears */}
+          <MetaStrip
+            showStreak
+            showXP
+            showWeeklyGoal
+            showDue
+            dueCount={0}
+            ephemeral
+            ephemeralMs={1200}
+          />
+
           {children}
-        </div>
-      </div>
-    </div>
+        </Container>
+      </Box>
+    </Box>
   );
 };
 

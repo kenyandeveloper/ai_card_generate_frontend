@@ -10,6 +10,31 @@ import StudySkeleton from "./StudySkeleton";
 import useStudyData from "./useStudyData";
 import WeeklyGoalDialog from "./WeeklyGoalDialog";
 import NotificationSnackbar from "./NotificationSnackbar";
+import MetaStrip from "../common/MetaStrip";
+import { Container, Box } from "@mui/material";
+import StatsOverview from "./StatsOverview";
+
+// Safe storage (avoids crashes in restricted contexts)
+const safeStorage = (() => {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const k = "__test__";
+      window.localStorage.setItem(k, "1");
+      window.localStorage.removeItem(k);
+      return window.localStorage;
+    }
+  } catch (_) {}
+  const mem = {};
+  return {
+    getItem: (k) => (k in mem ? mem[k] : null),
+    setItem: (k, v) => {
+      mem[k] = String(v);
+    },
+    removeItem: (k) => {
+      delete mem[k];
+    },
+  };
+})();
 
 const Study = () => {
   const navigate = useNavigate();
@@ -52,14 +77,13 @@ const Study = () => {
 
     const fetchUserStats = async () => {
       try {
-        const response = await fetch(
-          "https://ai-card-generate-backend.onrender.com/dashboard",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            },
-          }
-        );
+        const token = safeStorage.getItem("authToken");
+        const response = await fetch("http://127.0.0.1:5000/dashboard", {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -94,17 +118,15 @@ const Study = () => {
 
   const updateWeeklyGoal = async () => {
     try {
-      const response = await fetch(
-        "https://ai-card-generate-backend.onrender.com/user/stats",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({ weekly_goal: newWeeklyGoal }),
-        }
-      );
+      const token = safeStorage.getItem("authToken");
+      const response = await fetch("http://127.0.0.1:5000/user/stats", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ weekly_goal: newWeeklyGoal }),
+      });
 
       if (response.ok) {
         setUserStats((prev) => ({ ...prev, weekly_goal: newWeeklyGoal }));
@@ -114,7 +136,6 @@ const Study = () => {
           message: "Weekly goal updated successfully!",
           severity: "success",
         });
-        // Refresh data after updating goal
         refreshData(pagination.currentPage);
       } else {
         throw new Error("Failed to update weekly goal");
@@ -136,19 +157,42 @@ const Study = () => {
     return <StudySkeleton />;
   }
 
+  // If your backend returns due count anywhere (e.g., pagination.dueCount or a field on decks),
+  // pass it here; otherwise 0 is fine until wired.
+  const dueCount = pagination?.dueCount ?? 0;
+
   return (
     <>
       <NavBar />
+
+      {/* Anchor global stats in one compact place (no big duplicate cards elsewhere) */}
+      <Container maxWidth="lg" sx={{ pt: { xs: 2, md: 3 } }}>
+        <MetaStrip
+          showStreak // show 🔥 streak here too
+          showXP
+          showWeeklyGoal
+          showDue
+          dueCount={dueCount || 0}
+          ephemeral // <-- blink in, then hide
+          ephemeralMs={1200}
+        />
+      </Container>
+
+      {/* Main study content (unchanged) */}
       <StudyContent
-        userStats={userStats}
         decks={decks}
         pagination={pagination}
         handlePageChange={handlePageChange}
-        onUpdateGoalClick={() => setGoalDialogOpen(true)}
-        onDeckClick={handleDeckClick}
+        onDeckClick={(id) => navigate(`/study/${id}`)}
         onCreateDeckClick={() => navigate("/mydecks")}
+        extraTop={
+          <StatsOverview
+            userStats={userStats}
+            completedThisWeek={pagination?.completedThisWeek ?? 0}
+            onUpdateGoalClick={() => setGoalDialogOpen(true)}
+          />
+        }
       />
-
       <WeeklyGoalDialog
         open={goalDialogOpen}
         onClose={() => setGoalDialogOpen(false)}
