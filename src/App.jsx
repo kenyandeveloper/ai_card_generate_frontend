@@ -14,6 +14,7 @@ import StudyMode from "./components/StudyModeComponents/StudyMode";
 import BillingReturn from "./components/Billing/BillingReturn.jsx";
 import ForgotPassword from "./components/Authentication/ForgotPassword.jsx";
 import AdminDashboard from "./components/Admin/AdminDashboard";
+import WelcomeOnboarding from "./pages/WelcomeOnboarding.jsx";
 
 function AppContent() {
   return (
@@ -25,6 +26,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/welcome" element={<WelcomeOnboarding />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/mydecks" element={<MyDecks />} />
