@@ -559,7 +559,7 @@ function UsersTab() {
               setPerPage(Number(e.target.value));
             }}
           >
-            {[10, 20, 50, 100].map((n) => (
+            {[10, 20, 50, 100, 1000].map((n) => (
               <MenuItem key={n} value={n}>
                 {n}
               </MenuItem>
