@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import WelcomeSection from "./WelcomeSection";
@@ -8,7 +8,7 @@ import DecksSection from "./DeckSection";
 import QuickStudyCard from "./QuickStudyCard";
 import LearningTipsCard from "./LeadingTipsCard";
 import { getDeckStats } from "../../utils/dashBoardutil";
-import { fetchDeckCount } from "../../utils/onboardingApi"; // 👈 new helper
+import DashboardSkeleton from "./DashboardSkeleton"; // ← use your skeleton
 
 const DashboardContent = ({
   user,
@@ -18,31 +18,22 @@ const DashboardContent = ({
   isLoading,
   theme,
   isDarkMode,
-  navigate,
+  // remove navigate prop and just use router navigate to avoid confusion
 }) => {
-  const [checking, setChecking] = useState(true);
-  const routerNavigate = useNavigate();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const count = await fetchDeckCount();
-      if (!mounted) return;
+    if (!isLoading && (decks?.length ?? 0) === 0) {
+      navigate("/welcome", { replace: true });
+    }
+  }, [isLoading, decks, navigate]);
 
-      if (count === 0) {
-        routerNavigate("/welcome"); // redirect new users
-      } else {
-        setChecking(false); // allow render
-      }
-    })();
+  if (isLoading) {
+    return <DashboardSkeleton />; // ← paint immediately
+  }
 
-    return () => {
-      mounted = false;
-    };
-  }, [routerNavigate]);
-
-  if (checking) {
-    // you can swap this with a skeleton loader
+  // If not loading and no decks, we’ve already navigated; render nothing as a safety.
+  if (!isLoading && (decks?.length ?? 0) === 0) {
     return null;
   }
 
