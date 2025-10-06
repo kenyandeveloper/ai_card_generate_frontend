@@ -1,91 +1,65 @@
-import {
-  Box,
-  Typography,
-  useTheme,
-  useMediaQuery,
-  LinearProgress,
-} from "@mui/material";
+import { motion } from "framer-motion";
+import { useUser } from "../context/UserContext";
 import ProgressStats from "./ProgressStats";
-import { useUser } from "../context/UserContext"; // adjust relative path
 
 export default function ProgressStatsSection() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { user } = useUser?.() || {};
 
-  // Placeholder XP values; can be replaced by user data later
   const xp = user?.xp ?? 120;
   const nextLevelXp = user?.nextLevelXp ?? 200;
   const progress = Math.min((xp / nextLevelXp) * 100, 100);
+  const currentLevel = Math.floor(xp / 200) + 1;
 
   return (
-    <Box sx={{ mb: isMobile ? 6 : 10 }}>
-      <Typography
-        variant={isMobile ? "h4" : "h3"}
-        component="h2"
-        align="center"
-        sx={{
-          mb: isMobile ? 1.5 : 2,
-          fontWeight: "bold",
-          color: "text.primary",
-          fontSize: isMobile ? "1.75rem" : "2.25rem",
-        }}
+    <section className="mb-12 md:mb-20">
+      {/* Heading */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        viewport={{ once: true }}
       >
-        Track Your Learning Progress
-      </Typography>
-      <Typography
-        variant={isMobile ? "body1" : "h6"}
-        align="center"
-        sx={{
-          mb: isMobile ? 4 : 6,
-          color: "text.secondary",
-          maxWidth: "800px",
-          mx: "auto",
-          fontWeight: "normal",
-          fontSize: isMobile ? "1rem" : "1.25rem",
-        }}
-      >
-        Visualize your learning journey with detailed analytics and progress
-        tracking to stay motivated.
-      </Typography>
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4 text-gray-100">
+          Track Your Learning Progress
+        </h2>
+        <p className="text-base md:text-xl text-center text-gray-400 max-w-3xl mx-auto mb-8 md:mb-12 font-normal">
+          Visualize your learning journey with detailed analytics and progress
+          tracking to stay motivated.
+        </p>
+      </motion.div>
 
-      {/* Gamification: XP Progress Bar */}
-      <Box
-        sx={{
-          maxWidth: 500,
-          mx: "auto",
-          mb: isMobile ? 4 : 6,
-          textAlign: "center",
-        }}
+      {/* XP Progress Bar */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        viewport={{ once: true }}
+        className="max-w-lg mx-auto mb-8 md:mb-12 text-center"
       >
-        <Typography
-          variant="body2"
-          sx={{ mb: 1, color: "text.secondary", fontWeight: 500 }}
-        >
+        <p className="text-sm text-gray-400 font-medium mb-2">
           XP Progress — {xp} / {nextLevelXp}
-        </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{
-            height: 10,
-            borderRadius: 5,
-            bgcolor: "action.hover",
-            "& .MuiLinearProgress-bar": {
-              borderRadius: 5,
-              backgroundColor: theme.palette.primary.main,
-            },
-          }}
-        />
-        <Typography
-          variant="caption"
-          sx={{ mt: 1, display: "block", color: "text.secondary" }}
-        >
-          Level {Math.floor(xp / 200) + 1} in progress…
-        </Typography>
-      </Box>
+        </p>
 
+        {/* Progress Bar Container */}
+        <div className="relative h-2.5 bg-gray-800 rounded-full overflow-hidden">
+          {/* Progress Fill */}
+          <motion.div
+            initial={{ width: 0 }}
+            whileInView={{ width: `${progress}%` }}
+            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+            viewport={{ once: true }}
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-purple-500 rounded-full"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Level {currentLevel} in progress…
+        </p>
+      </motion.div>
+
+      {/* Stats Grid */}
       <ProgressStats />
-    </Box>
+    </section>
   );
 }

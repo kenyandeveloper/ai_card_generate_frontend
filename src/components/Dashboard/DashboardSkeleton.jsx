@@ -1,31 +1,30 @@
-"use client";
-
+// src/components/Dashboard/DashboardSkeleton.jsx
 import { motion } from "framer-motion";
 
-const DashboardSkeleton = ({ isMobile }) => {
-  const shimmer = {
-    hidden: { opacity: 0.3 },
-    visible: {
-      opacity: [0.3, 0.8, 0.3],
-      transition: {
-        duration: 1.5,
-        repeat: Number.POSITIVE_INFINITY,
-        ease: "easeInOut",
-      },
+const shimmer = {
+  hidden: { opacity: 0.3 },
+  visible: {
+    opacity: [0.3, 0.8, 0.3],
+    transition: {
+      duration: 1.5,
+      repeat: Number.POSITIVE_INFINITY,
+      ease: "easeInOut",
     },
-  };
+  },
+};
 
-  const SkeletonBox = ({ className = "", children }) => (
-    <motion.div
-      variants={shimmer}
-      initial="hidden"
-      animate="visible"
-      className={`bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 rounded-xl ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
+const SkeletonBox = ({ className = "", children }) => (
+  <motion.div
+    variants={shimmer}
+    initial="hidden"
+    animate="visible"
+    className={`bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 rounded-xl ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 
+const DashboardSkeleton = () => {
   return (
     <div className="space-y-8">
       {/* Welcome Section Skeleton */}

@@ -34,6 +34,8 @@ import {
   deleteUsers,
 } from "../../utils/adminApi";
 
+import { formatEAT } from "../../utils/time";
+
 // Reuse the same envs your helper uses for the one endpoint we call locally
 const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:5000";
 const ADMIN_KEY = import.meta.env?.VITE_ADMIN_API_KEY || "";
@@ -727,9 +729,7 @@ function UsersTab() {
                   <TableCell>{u.email}</TableCell>
                   <TableCell>{u.is_demo ? "Yes" : "No"}</TableCell>
                   <TableCell>{u.email_verified ? "Yes" : "No"}</TableCell>
-                  <TableCell>
-                    {u.last_seen ? new Date(u.last_seen).toLocaleString() : "—"}
-                  </TableCell>
+                  <TableCell>{formatEAT(u.last_seen)}</TableCell>
                   <TableCell>
                     {u.created_at
                       ? new Date(u.created_at).toLocaleString()

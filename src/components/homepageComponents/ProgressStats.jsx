@@ -1,17 +1,6 @@
-"use client";
-
 import { motion } from "framer-motion";
 import { Brain, Trophy, Clock, Target } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  useTheme,
-  Grid,
-  Box,
-  useMediaQuery,
-} from "@mui/material";
-import { CircularProgress } from "./CircularProgress";
+import CircularProgress from "./CircularProgress";
 
 const stats = [
   {
@@ -19,6 +8,7 @@ const stats = [
     value: 85,
     label: "Retention Rate",
     description: "Average memory retention",
+    suffix: "%",
   },
   {
     icon: Trophy,
@@ -37,163 +27,83 @@ const stats = [
     value: 92,
     label: "Accuracy",
     description: "Correct answers",
+    suffix: "%",
   },
 ];
 
+const circularStats = [
+  { value: 85, label: "Weekly Goal" },
+  { value: 92, label: "Mastery Level" },
+  { value: 78, label: "Study Streak" },
+  { value: 95, label: "Focus Score" },
+];
+
 export default function ProgressStats() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isDarkMode = theme.palette.mode === "dark";
-
-  // Custom icon background colors based on theme
-  const iconBgColor = isDarkMode
-    ? "rgba(124, 58, 237, 0.15)" // Subtle purple in dark mode
-    : "rgba(124, 58, 237, 0.08)"; // Very light purple in light mode
-
-  const iconColor = theme.palette.primary.main;
-
   return (
-    <Box sx={{ maxWidth: "1200px", mx: "auto", px: isMobile ? 1 : 2 }}>
-      <Grid container spacing={isMobile ? 2 : 4}>
-        {/* Circular Progress Card */}
-        <Grid item xs={12} md={6}>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            <Card
-              sx={{
-                height: "100%",
-                bgcolor: "background.paper",
-                borderRadius: "16px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                },
-              }}
-            >
-              <CardContent sx={{ p: isMobile ? 2 : 4 }}>
-                <Grid container spacing={isMobile ? 2 : 4}>
-                  {[
-                    { value: 85, label: "Weekly Goal" },
-                    { value: 92, label: "Mastery Level" },
-                    { value: 78, label: "Study Streak" },
-                    { value: 95, label: "Focus Score" },
-                  ].map((item, i) => (
-                    <Grid item xs={6} key={i}>
-                      <CircularProgress
-                        percentage={item.value}
-                        label={item.label}
-                        size={isMobile ? 80 : 120} // Adjust size for mobile
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
+    <div className="max-w-6xl mx-auto px-2 sm:px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+        {/* Left: Circular Progress Card */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+          className="bg-gray-900 rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-2xl transition-shadow"
+        >
+          <div className="grid grid-cols-2 gap-4 md:gap-8">
+            {circularStats.map((item, i) => (
+              <div key={i}>
+                <CircularProgress
+                  percentage={item.value}
+                  label={item.label}
+                  size={window.innerWidth < 640 ? 80 : 120}
+                />
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
-        {/* Stats Cards */}
-        <Grid item xs={12} md={6}>
-          <Grid container spacing={isMobile ? 2 : 3}>
-            {stats.map((stat, index) => (
-              <Grid item xs={6} key={index}>
+        {/* Right: Stats Cards Grid */}
+        <div className="grid grid-cols-2 gap-3 md:gap-6">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="bg-gray-900 rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-2xl transition-shadow"
+              >
+                {/* Icon Container */}
+                <div className="w-12 h-12 bg-purple-900/15 rounded-xl flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-purple-500" strokeWidth={2.5} />
+                </div>
+
+                {/* Value */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <Card
-                    sx={{
-                      height: "100%",
-                      bgcolor: "background.paper",
-                      borderRadius: "16px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-                      <Box
-                        sx={{
-                          backgroundColor: iconBgColor,
-                          padding: "12px",
-                          borderRadius: "12px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "48px",
-                          height: "48px",
-                          mb: 2,
-                          boxShadow: isDarkMode
-                            ? "none"
-                            : "0 4px 8px rgba(124, 58, 237, 0.1)",
-                        }}
-                      >
-                        <stat.icon
-                          style={{
-                            color: iconColor,
-                            strokeWidth: 2.5,
-                          }}
-                        />
-                      </Box>
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                        viewport={{ once: true }}
-                      >
-                        <Typography
-                          variant={isMobile ? "h5" : "h4"} // Smaller heading on mobile
-                          sx={{
-                            color: "text.primary",
-                            mb: 1,
-                            fontWeight: "bold",
-                            fontSize: isMobile ? "1.5rem" : "2rem", // Responsive font size
-                          }}
-                        >
-                          {stat.value}
-                          {stat.label.includes("Rate") ||
-                          stat.label.includes("Accuracy")
-                            ? "%"
-                            : ""}
-                        </Typography>
-                        <Typography
-                          variant={isMobile ? "subtitle2" : "subtitle1"} // Smaller text on mobile
-                          sx={{
-                            color: "text.primary",
-                            mb: 0.5,
-                            fontWeight: "medium",
-                            fontSize: isMobile ? "0.875rem" : "1rem", // Responsive font size
-                          }}
-                        >
-                          {stat.label}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "text.secondary",
-                            fontSize: isMobile ? "0.75rem" : "0.875rem", // Responsive font size
-                          }}
-                        >
-                          {stat.description}
-                        </Typography>
-                      </motion.div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-3xl md:text-4xl font-bold text-gray-100 mb-2">
+                    {stat.value}
+                    {stat.suffix || ""}
+                  </h3>
+                  <h4 className="text-sm md:text-base font-medium text-gray-100 mb-1">
+                    {stat.label}
+                  </h4>
+                  <p className="text-xs md:text-sm text-gray-400">
+                    {stat.description}
+                  </p>
                 </motion.div>
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
-      </Grid>
-    </Box>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
