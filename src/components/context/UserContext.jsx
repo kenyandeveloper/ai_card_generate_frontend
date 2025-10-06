@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 const UserContext = createContext();
 
 // Prefer env var, fallback to local API
-const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:5000";
+const API_URL = import.meta.env?.VITE_API_URL;
 const TOKEN_KEY = "authToken";
 
 export const UserProvider = ({ children }) => {
