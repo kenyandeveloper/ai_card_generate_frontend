@@ -1,126 +1,57 @@
-// src/components/homepageComponents/HeroSection.jsx
-"use client";
-
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
-import {
-  Box,
-  Grid,
-  Typography,
-  Button,
-  Container,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
 
 export default function HeroSection() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   return (
-    <Box
-      sx={{
-        py: isMobile ? 6 : 10,
-        bgcolor: "background.default",
-        borderBottom: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Container maxWidth="lg">
-        <Grid container spacing={isMobile ? 4 : 6} alignItems="center">
-          {/* Text */}
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
+    <section className="py-12 md:py-20 bg-gray-950 border-b border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+          {/* Left: Text Content */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-100 mb-4 leading-tight">
+              Master Any Subject with Smart Flashcards
+            </h2>
+
+            <p className="text-base md:text-lg text-gray-400 mb-6 font-normal">
+              Create personalized decks, track your progress, and optimize your
+              learning with spaced repetition.
+            </p>
+
+            {/* Gamification Hint */}
+            <p className="text-sm text-gray-400 mb-6">
+              Earn XP for every study session. Hit your weekly goal to keep your
+              streak alive 🔥
+            </p>
+
+            <a
+              href="/signup"
+              className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 md:px-8 py-2 md:py-3 rounded-lg transition-colors font-semibold group"
             >
-              <Typography
-                variant={isMobile ? "h3" : "h2"}
-                component="h2"
-                sx={{
-                  mb: 2,
-                  fontWeight: 800,
-                  color: "text.primary",
-                  lineHeight: 1.2,
-                  fontSize: isMobile ? "2rem" : "3rem",
-                }}
-              >
-                Master Any Subject with Smart Flashcards
-              </Typography>
-              <Typography
-                variant={isMobile ? "body1" : "h6"}
-                sx={{
-                  mb: 3,
-                  color: "text.secondary",
-                  fontWeight: 400,
-                  fontSize: isMobile ? "1rem" : "1.125rem",
-                }}
-              >
-                Create personalized decks, track your progress, and optimize
-                your learning with spaced repetition.
-              </Typography>
+              Start learning for free
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </a>
+          </motion.div>
 
-              {/* micro-gamification hint */}
-              <Typography
-                variant="body2"
-                sx={{ mb: 2, color: "text.secondary" }}
-              >
-                Earn XP for every study session. Hit your weekly goal to keep
-                your streak alive 🔥
-              </Typography>
-
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <Button
-                  variant="contained"
-                  size={isMobile ? "medium" : "large"}
-                  component={RouterLink}
-                  to="/signup"
-                  sx={{
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    px: isMobile ? 3 : 4,
-                    py: isMobile ? 1 : 1.5,
-                    "&:hover": { bgcolor: "primary.dark" },
-                  }}
-                  endIcon={<ArrowRight />}
-                >
-                  Start learning for free
-                </Button>
-              </Box>
-            </motion.div>
-          </Grid>
-
-          {/* Image */}
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Box
-                sx={{
-                  position: "relative",
-                  height: isMobile ? "300px" : "400px",
-                  width: "100%",
-                  borderRadius: 4,
-                  overflow: "hidden",
-                  boxShadow:
-                    "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
-                }}
-              >
-                <Box
-                  component="img"
-                  src="https://images.unsplash.com/photo-1625750331870-624de6fd3452?w=1200&auto=format&fit=crop&q=60"
-                  alt="Chess king representing mastery"
-                  sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              </Box>
-            </motion.div>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+          {/* Right: Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="relative h-72 md:h-96 lg:h-[28rem] w-full rounded-2xl overflow-hidden shadow-2xl">
+              <img
+                src="https://images.unsplash.com/photo-1625750331870-624de6fd3452?w=1200&auto=format&fit=crop&q=60"
+                alt="Chess king representing mastery"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
   );
 }

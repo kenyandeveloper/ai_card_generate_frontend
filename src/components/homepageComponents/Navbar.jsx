@@ -1,157 +1,109 @@
 // src/components/homepageComponents/Navbar.jsx
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  Chip,
-  useMediaQuery,
-} from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
-import MenuIcon from "@mui/icons-material/Menu";
-import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
-import { useContext, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Menu, X, Flame } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useUser } from "../context/UserContext";
 
 function StreakPill() {
-  // Try to pull a real streak from context; otherwise default.
   const { user } = useUser?.() || {};
   const streakDays = useMemo(() => {
     if (user?.streakDays != null) return user.streakDays;
     if (user?.stats?.streak != null) return user.stats.streak;
-    return 2; // safe default until backend hooks in
+    return 2;
   }, [user]);
 
   return (
-    <Chip
-      icon={<WhatshotRoundedIcon />}
-      label={`Day ${streakDays}`}
-      size="small"
-      sx={{
-        bgcolor: "action.selected",
-        color: "text.primary",
-        "& .MuiChip-icon": { color: "warning.main" },
-        fontWeight: 600,
-      }}
+    <div
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-950/30 rounded-full border border-orange-800"
       aria-label={`Current learning streak: Day ${streakDays}`}
-    />
+    >
+      <Flame className="w-4 h-4 text-orange-500" />
+      <span className="text-sm font-semibold text-gray-100">
+        Day {streakDays}
+      </span>
+    </div>
   );
 }
 
 export default function Navbar() {
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-  const [anchorEl, setAnchorEl] = useState(null);
-
-  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{
-        bgcolor: "background.nav", // ensure this exists in theme (see theme notes below)
-        borderBottom: 1,
-        borderColor: "divider",
-        backdropFilter: "saturate(180%) blur(6px)",
-      }}
-    >
-      <Toolbar>
-        {/* Brand */}
-        <Typography
-          variant="h5"
-          component="h1"
-          sx={{ fontWeight: "bold", color: "text.primary" }}
-        >
-          Flashlearn
-        </Typography>
+    <nav className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Brand */}
+          <Link to="/" className="flex items-center">
+            <h1 className="text-2xl font-bold text-white">Flashlearn</h1>
+          </Link>
 
-        {/* Grow */}
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* Mobile */}
-        {isMobile ? (
-          <>
-            {/* Streak pill stays visible on mobile */}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
             <StreakPill />
 
-            <IconButton
-              color="inherit"
-              aria-label="menu"
-              onClick={handleMenuOpen}
-              sx={{ ml: 1 }}
-            >
-              <MenuIcon />
-            </IconButton>
-
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              <MenuItem disabled>
-                {/* tiny hint of gamification */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <WhatshotRoundedIcon color="warning" fontSize="small" />
-                  <Typography variant="body2">Keep your streak!</Typography>
-                </Box>
-              </MenuItem>
-              <MenuItem
-                onClick={handleMenuClose}
-                component={RouterLink}
-                to="/login"
-              >
-                Sign In
-              </MenuItem>
-              <MenuItem
-                onClick={handleMenuClose}
-                component={RouterLink}
-                to="/signup"
-              >
-                Get Started
-              </MenuItem>
-            </Menu>
-          </>
-        ) : (
-          // Desktop
-          <Box
-            sx={{ display: "flex", gap: 2, alignItems: "center", ml: "auto" }}
-          >
-            <StreakPill />
-            <Button
-              variant="outlined"
-              component={RouterLink}
+            <Link
               to="/login"
-              sx={{
-                borderColor: "primary.main",
-                color: "primary.main",
-                "&:hover": {
-                  borderColor: "primary.dark",
-                  bgcolor: "rgba(67, 97, 238, 0.04)",
-                },
-              }}
+              className="px-4 py-2 text-sm font-medium text-blue-400 border border-blue-400 rounded-lg hover:bg-blue-950/30 transition-colors"
             >
               Sign In
-            </Button>
-            <Button
-              variant="contained"
-              component={RouterLink}
+            </Link>
+
+            <Link
               to="/signup"
-              sx={{
-                bgcolor: "primary.main",
-                color: "primary.contrastText",
-                "&:hover": { bgcolor: "primary.dark" },
-              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
             >
               Get Started
-            </Button>
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-3">
+            <StreakPill />
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-800 bg-gray-900">
+          <div className="px-4 py-4 space-y-3">
+            {/* Gamification hint */}
+            <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 bg-orange-950/20 rounded-lg border border-orange-800">
+              <Flame className="w-4 h-4 text-orange-500" />
+              <span>Keep your streak!</span>
+            </div>
+
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-blue-400 border border-blue-400 rounded-lg hover:bg-blue-950/30 transition-colors"
+            >
+              Sign In
+            </Link>
+
+            <Link
+              to="/signup"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }

@@ -1,23 +1,29 @@
-"use client";
-
+// src/components/Dashboard/DeckCard.jsx
 import { motion } from "framer-motion";
 import { PlayCircle, Clock, TrendingUp, BookOpen } from "lucide-react";
 import { getRelativeTime } from "../../utils/dashBoardutil";
 
-const DeckCard = ({ deck, deckStats, navigate }) => {
-  const masteryColor =
-    deckStats.mastery >= 80
-      ? "text-green-400"
-      : deckStats.mastery >= 60
-      ? "text-yellow-400"
-      : "text-red-400";
+const getMasteryColor = (mastery) => {
+  if (mastery >= 80) {
+    return {
+      text: "text-green-400",
+      gradient: "from-green-400 to-green-600",
+    };
+  }
+  if (mastery >= 60) {
+    return {
+      text: "text-yellow-400",
+      gradient: "from-yellow-400 to-yellow-600",
+    };
+  }
+  return {
+    text: "text-red-400",
+    gradient: "from-red-400 to-red-600",
+  };
+};
 
-  const masteryBgColor =
-    deckStats.mastery >= 80
-      ? "from-green-400 to-green-600"
-      : deckStats.mastery >= 60
-      ? "from-yellow-400 to-yellow-600"
-      : "from-red-400 to-red-600";
+const DeckCard = ({ deck, deckStats, navigate }) => {
+  const colors = getMasteryColor(deckStats.mastery);
 
   return (
     <motion.div
@@ -66,7 +72,7 @@ const DeckCard = ({ deck, deckStats, navigate }) => {
                   <TrendingUp className="w-4 h-4 text-slate-400" />
                   <span className="text-sm text-slate-400">Mastery</span>
                 </div>
-                <span className={`text-sm font-bold ${masteryColor}`}>
+                <span className={`text-sm font-bold ${colors.text}`}>
                   {deckStats.mastery}%
                 </span>
               </div>
@@ -77,7 +83,7 @@ const DeckCard = ({ deck, deckStats, navigate }) => {
                     initial={{ width: 0 }}
                     animate={{ width: `${deckStats.mastery}%` }}
                     transition={{ duration: 1, delay: 0.3 }}
-                    className={`h-full bg-gradient-to-r ${masteryBgColor} rounded-full relative`}
+                    className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full relative`}
                   >
                     <div className="absolute inset-0 bg-white/20 animate-pulse" />
                   </motion.div>

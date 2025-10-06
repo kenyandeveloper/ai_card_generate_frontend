@@ -1,19 +1,8 @@
 // src/components/homepageComponents/FeatureCard.jsx
-"use client";
-
 import { motion } from "framer-motion";
 import PropTypes from "prop-types";
-import {
-  Card,
-  CardContent,
-  Typography,
-  useTheme,
-  Box,
-  useMediaQuery,
-  Chip,
-  Tooltip,
-} from "@mui/material";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { Lock } from "lucide-react";
+import { useState } from "react";
 
 export default function FeatureCard({
   Icon,
@@ -22,122 +11,61 @@ export default function FeatureCard({
   locked = false,
   lockReason,
 }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isDarkMode = theme.palette.mode === "dark";
-
-  const iconBgColor = isDarkMode
-    ? "rgba(124, 58, 237, 0.15)"
-    : "rgba(124, 58, 237, 0.08)";
-
-  const iconColor = theme.palette.primary.main;
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <motion.div
+      className="relative h-full"
       whileHover={{ scale: locked ? 1.0 : 1.02, y: locked ? 0 : -5 }}
       transition={{ duration: 0.2 }}
+      onMouseEnter={() => locked && setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
-      <Tooltip
-        title={locked ? lockReason || "Unlock this feature by leveling up" : ""}
-        disableHoverListener={!locked}
-        arrow
+      {/* Locked Badge */}
+      {locked && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 bg-gray-800/80 rounded-full text-xs font-medium text-gray-300">
+          <Lock className="w-3 h-3" />
+          Locked
+        </div>
+      )}
+
+      {/* Tooltip */}
+      {locked && showTooltip && (
+        <div className="absolute top-12 right-3 z-20 px-3 py-2 bg-gray-800 text-gray-100 text-sm rounded-lg shadow-lg max-w-xs whitespace-normal">
+          {lockReason || "Unlock this feature by leveling up"}
+          <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 transform rotate-45" />
+        </div>
+      )}
+
+      {/* Card */}
+      <div
+        className={`
+          h-full p-6 md:p-8 flex flex-col items-center text-center
+          bg-gray-900 rounded-xl border border-gray-800
+          shadow-lg shadow-black/20
+          transition-all duration-300
+          ${
+            locked
+              ? "opacity-75 grayscale-[0.25] pointer-events-none"
+              : "hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/50"
+          }
+        `}
       >
-        <Box sx={{ position: "relative" }}>
-          {locked && (
-            <Chip
-              icon={<LockOutlinedIcon />}
-              label="Locked"
-              size="small"
-              sx={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                zIndex: 2,
-                bgcolor: "action.selected",
-                color: "text.primary",
-                "& .MuiChip-icon": { color: "text.secondary" },
-              }}
-            />
-          )}
+        {/* Icon */}
+        <div className="mb-4 md:mb-6 p-3 bg-purple-500/15 rounded-xl">
+          <Icon className="w-6 h-6 text-purple-500" strokeWidth={2.5} />
+        </div>
 
-          <Card
-            sx={{
-              bgcolor: "background.paper",
-              height: "100%",
-              transition: "all 0.3s ease",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-              ...(locked
-                ? {
-                    opacity: 0.75,
-                    filter: "grayscale(0.25)",
-                    pointerEvents: "none",
-                  }
-                : {
-                    "&:hover": {
-                      boxShadow: "0 12px 24px rgba(0,0,0,0.1)",
-                      borderColor: isDarkMode
-                        ? "primary.main"
-                        : "primary.light",
-                    },
-                  }),
-            }}
-          >
-            <CardContent
-              sx={{
-                p: isMobile ? 3 : 4,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: isMobile ? 1.5 : 2,
-              }}
-            >
-              <Box
-                sx={{
-                  backgroundColor: iconBgColor,
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 48,
-                  height: 48,
-                  mb: isMobile ? 1.5 : 2,
-                  boxShadow: isDarkMode
-                    ? "none"
-                    : "0 4px 8px rgba(124, 58, 237, 0.1)",
-                }}
-              >
-                <Icon style={{ color: iconColor, strokeWidth: 2.5 }} />
-              </Box>
+        {/* Title */}
+        <h3 className="mb-2 md:mb-3 text-lg md:text-xl font-semibold text-gray-100">
+          {title}
+        </h3>
 
-              <Typography
-                variant={isMobile ? "subtitle1" : "h6"}
-                sx={{
-                  color: "text.primary",
-                  fontWeight: 600,
-                  textAlign: "center",
-                  mb: isMobile ? 0.5 : 1,
-                  fontSize: isMobile ? "1.1rem" : "1.25rem",
-                }}
-              >
-                {title}
-              </Typography>
-
-              <Typography
-                variant={isMobile ? "body2" : "body1"}
-                sx={{
-                  color: "text.secondary",
-                  textAlign: "center",
-                  lineHeight: 1.6,
-                  fontSize: isMobile ? "0.875rem" : "1rem",
-                }}
-              >
-                {description}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-      </Tooltip>
+        {/* Description */}
+        <p className="text-sm md:text-base text-gray-400 leading-relaxed">
+          {description}
+        </p>
+      </div>
     </motion.div>
   );
 }

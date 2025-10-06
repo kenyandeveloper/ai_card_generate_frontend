@@ -1,24 +1,23 @@
-"use client";
-
+// src/components/Dashboard/DecksSection.jsx
 import { motion } from "framer-motion";
 import { BookOpen, Plus, ArrowRight } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import DeckCard from "./DeckCard";
 
-const DecksSection = ({ decks, getDeckStats, navigate, theme }) => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
 
+const DecksSection = ({ decks, getDeckStats, navigate }) => {
   return (
     <motion.div
       variants={containerVariants}
@@ -57,7 +56,6 @@ const DecksSection = ({ decks, getDeckStats, navigate, theme }) => {
                   <DeckCard
                     deck={deck}
                     deckStats={deckStats}
-                    theme={theme}
                     navigate={navigate}
                   />
                 </motion.div>

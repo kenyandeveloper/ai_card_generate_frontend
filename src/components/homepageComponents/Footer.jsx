@@ -1,26 +1,13 @@
 // src/components/homepageComponents/Footer.jsx
-import { Box, Container, Typography } from "@mui/material";
 
 export default function Footer() {
   return (
-    <Box
-      component="footer"
-      sx={{
-        py: 6,
-        bgcolor: "background.paper",
-        borderTop: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Container maxWidth="lg">
-        <Typography
-          variant="body2"
-          align="center"
-          sx={{ color: "text.secondary" }}
-        >
+    <footer className="py-12 bg-gray-900 border-t border-gray-800">
+      <div className="max-w-7xl mx-auto px-4">
+        <p className="text-center text-sm text-gray-400">
           © {new Date().getFullYear()} Flashlearn. All rights reserved.
-        </Typography>
-      </Container>
-    </Box>
+        </p>
+      </div>
+    </footer>
   );
 }

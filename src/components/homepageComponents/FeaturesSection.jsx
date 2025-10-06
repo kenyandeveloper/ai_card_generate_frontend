@@ -1,5 +1,4 @@
 // src/components/homepageComponents/FeaturesSection.jsx
-import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
 import {
   GraduationCap,
   Target,
@@ -50,7 +49,6 @@ const features = [
   },
 ];
 
-// Gamified preview (locked until Level 2)
 const lockedFeature = {
   Icon: BadgeCheck,
   title: "Achievements & Badges",
@@ -61,52 +59,28 @@ const lockedFeature = {
 };
 
 export default function FeaturesSection() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   return (
-    <Box sx={{ mb: isMobile ? 6 : 10 }}>
-      <Typography
-        variant={isMobile ? "h4" : "h3"}
-        component="h2"
-        align="center"
-        sx={{
-          mb: 2,
-          fontWeight: "bold",
-          color: "text.primary",
-          fontSize: isMobile ? "1.75rem" : "2.25rem",
-        }}
-      >
+    <section className="mb-16 md:mb-24">
+      {/* Heading */}
+      <h2 className="mb-4 text-4xl md:text-5xl font-bold text-center text-gray-100">
         Features Designed for Effective Learning
-      </Typography>
-      <Typography
-        variant={isMobile ? "body1" : "h6"}
-        align="center"
-        sx={{
-          mb: isMobile ? 4 : 6,
-          color: "text.secondary",
-          maxWidth: "800px",
-          mx: "auto",
-          fontWeight: "normal",
-          fontSize: isMobile ? "1rem" : "1.25rem",
-        }}
-      >
+      </h2>
+
+      {/* Subtitle */}
+      <p className="mb-8 md:mb-12 mx-auto max-w-3xl text-base md:text-lg text-center text-gray-400 font-normal">
         Our platform combines proven learning techniques with modern technology
         to help you learn faster and remember longer.
-      </Typography>
+      </p>
 
-      <Grid container spacing={isMobile ? 2 : 4}>
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         {features.map((feature, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <FeatureCard {...feature} />
-          </Grid>
+          <FeatureCard key={index} {...feature} />
         ))}
 
         {/* Locked teaser card */}
-        <Grid item xs={12} sm={6} md={4}>
-          <FeatureCard {...lockedFeature} />
-        </Grid>
-      </Grid>
-    </Box>
+        <FeatureCard {...lockedFeature} />
+      </div>
+    </section>
   );
 }
