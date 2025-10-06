@@ -2,9 +2,7 @@
 import axios from "axios";
 
 // Normalize base URL (no trailing slash)
-const BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000"
-).replace(/\/+$/, "");
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 // Read a JWT from any of your legacy keys (keeps compatibility)
 function getToken() {

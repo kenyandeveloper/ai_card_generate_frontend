@@ -11,8 +11,11 @@ import useStudyData from "./useStudyData";
 import WeeklyGoalDialog from "./WeeklyGoalDialog";
 import NotificationSnackbar from "./NotificationSnackbar";
 import MetaStrip from "../common/MetaStrip";
-import { Container, Box } from "@mui/material";
+import { Container } from "@mui/material";
 import StatsOverview from "./StatsOverview";
+
+// ✅ Use .env-defined API URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Safe storage (avoids crashes in restricted contexts)
 const safeStorage = (() => {
@@ -78,7 +81,7 @@ const Study = () => {
     const fetchUserStats = async () => {
       try {
         const token = safeStorage.getItem("authToken");
-        const response = await fetch("http://127.0.0.1:5000/dashboard", {
+        const response = await fetch(`${API_URL}/dashboard`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -119,7 +122,7 @@ const Study = () => {
   const updateWeeklyGoal = async () => {
     try {
       const token = safeStorage.getItem("authToken");
-      const response = await fetch("http://127.0.0.1:5000/user/stats", {
+      const response = await fetch(`${API_URL}/user/stats`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -157,33 +160,29 @@ const Study = () => {
     return <StudySkeleton />;
   }
 
-  // If your backend returns due count anywhere (e.g., pagination.dueCount or a field on decks),
-  // pass it here; otherwise 0 is fine until wired.
   const dueCount = pagination?.dueCount ?? 0;
 
   return (
     <>
       <NavBar />
 
-      {/* Anchor global stats in one compact place (no big duplicate cards elsewhere) */}
       <Container maxWidth="lg" sx={{ pt: { xs: 2, md: 3 } }}>
         <MetaStrip
-          showStreak // show 🔥 streak here too
+          showStreak
           showXP
           showWeeklyGoal
           showDue
           dueCount={dueCount || 0}
-          ephemeral // <-- blink in, then hide
+          ephemeral
           ephemeralMs={1200}
         />
       </Container>
 
-      {/* Main study content (unchanged) */}
       <StudyContent
         decks={decks}
         pagination={pagination}
         handlePageChange={handlePageChange}
-        onDeckClick={(id) => navigate(`/study/${id}`)}
+        onDeckClick={handleDeckClick}
         onCreateDeckClick={() => navigate("/mydecks")}
         extraTop={
           <StatsOverview
@@ -193,6 +192,7 @@ const Study = () => {
           />
         }
       />
+
       <WeeklyGoalDialog
         open={goalDialogOpen}
         onClose={() => setGoalDialogOpen(false)}

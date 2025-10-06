@@ -1,6 +1,6 @@
 // utils/adminApi.js
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_API_KEY || "dev-only-key";
+const API_URL = import.meta.env.VITE_API_URL;
+const ADMIN_KEY = import.meta.env.VITE_ADMIN_API_KEY;
 
 function headers(extra = {}) {
   return { "X-Admin-Key": ADMIN_KEY, ...extra };
