@@ -43,14 +43,14 @@ export default function Navbar() {
 
             <Link
               to="/login"
-              className="px-4 py-2 text-sm font-medium text-blue-400 border border-blue-400 rounded-lg hover:bg-blue-950/30 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-purple-400 border border-purple-400 rounded-lg hover:bg-purple-950/30 transition-colors"
             >
               Sign In
             </Link>
 
             <Link
               to="/signup"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
             >
               Get Started
             </Link>
@@ -89,7 +89,7 @@ export default function Navbar() {
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="block w-full px-4 py-3 text-center text-sm font-medium text-blue-400 border border-blue-400 rounded-lg hover:bg-blue-950/30 transition-colors"
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-purple-400 border border-purple-400 rounded-lg hover:bg-purple-950/30 transition-colors"
             >
               Sign In
             </Link>
@@ -97,7 +97,7 @@ export default function Navbar() {
             <Link
               to="/signup"
               onClick={() => setMobileMenuOpen(false)}
-              className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
             >
               Get Started
             </Link>

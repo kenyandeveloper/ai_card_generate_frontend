@@ -1,76 +1,45 @@
-"use client";
-
-import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "./context/UserContext";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  Container,
-  Avatar,
-  IconButton,
-  useTheme,
-  Menu,
-  Divider,
-  useMediaQuery,
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
 import {
   LogOut,
   LayoutDashboard,
   BookOpen,
   GraduationCap,
-  MenuIcon,
+  Menu,
+  School,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
-// NEW: billing dialog
 import BillingDialog from "./Billing/BillingDialog";
 import { getBillingStatus } from "../utils/billingApi";
 
 const NavBar = () => {
-  const { user, logout } = useUser();
+  const { user, logout, hasRole } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
   const [billingStatus, setBillingStatus] = useState(null);
-
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isDarkMode = theme.palette.mode === "dark";
-
-  const logoutButtonColor = "#e53935";
-  const logoutButtonHoverColor = "#c62828";
-  const profileIconColor = "#16C47F";
-  const profileIconTextColor = "#ffffff";
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
   };
 
-  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-
-  const navItems = useMemo(
-    () => [
+  const navItems = useMemo(() => {
+    const items = [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { path: "/mydecks", label: "My Decks", icon: BookOpen },
       { path: "/study", label: "Study", icon: GraduationCap },
-    ],
-    []
-  );
+    ];
+    if (hasRole?.("teacher", "admin")) {
+      items.push({ path: "/teacher", label: "Teacher", icon: School });
+    }
+    return items;
+  }, [hasRole, user?.role]);
 
-  // Fetch billing status when dialog opens or user changes
+  // Fetch billing status when dialog opens
   useEffect(() => {
     let active = true;
     (async () => {
@@ -86,271 +55,176 @@ const NavBar = () => {
     };
   }, [user, billingOpen]);
 
-  // Lightweight event bus so other components (AIGenerateModal) can open the dialog:
+  // Event bus for opening billing dialog
   useEffect(() => {
     const openHandler = () => setBillingOpen(true);
     window.addEventListener("open-billing", openHandler);
     return () => window.removeEventListener("open-billing", openHandler);
   }, []);
 
-  const drawer = (
-    <Box onClick={handleDrawerToggle} sx={{ textAlign: "center" }}>
-      <Typography variant="h6" sx={{ my: 2 }}>
-        Flashlearn
-      </Typography>
-      <Divider />
-      <List>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          return (
-            <ListItem
-              key={item.path}
-              component={RouterLink}
-              to={item.path}
-              sx={{
-                color: isActive ? "primary.main" : "text.secondary",
-                "&:hover": { color: "primary.main" },
-                textTransform: "none",
-                fontSize: "0.875rem",
-                fontWeight: isActive ? 600 : 400,
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <Icon size={18} />
-              </ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItem>
-          );
-        })}
-
-        {/* Mobile: show Upgrade entry if not active */}
-        {user && billingStatus?.subscription_status !== "active" && (
-          <ListItem
-            onClick={() => setBillingOpen(true)}
-            sx={{
-              color: "primary.main",
-              "&:hover": { backgroundColor: "primary.main", color: "#fff" },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <BookOpen size={18} />
-            </ListItemIcon>
-            <ListItemText primary="Upgrade (KES 100)" />
-          </ListItem>
-        )}
-
-        {user && (
-          <ListItem
-            onClick={handleLogout}
-            sx={{
-              color: logoutButtonColor,
-              "&:hover": { backgroundColor: `${logoutButtonColor}20` },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <LogOut size={18} color={logoutButtonColor} />
-            </ListItemIcon>
-            <ListItemText primary="Sign Out" />
-          </ListItem>
-        )}
-      </List>
-    </Box>
-  );
-
   const isActiveSub = billingStatus?.subscription_status === "active";
   const remaining = billingStatus?.month_remaining ?? null;
 
   return (
     <>
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: "background.nav",
-          borderBottom: 1,
-          borderColor: "divider",
-        }}
-      >
-        <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ gap: 2 }}>
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 0, color: "text.nav" }}
-              >
-                <MenuIcon size={22} />
-              </IconButton>
-            )}
-
-            <Typography
-              variant={isMobile ? "h6" : "h5"}
-              component={RouterLink}
-              to="/dashboard"
-              sx={{
-                fontWeight: "bold",
-                color: "text.nav",
-                textDecoration: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                flexGrow: isMobile ? 1 : 0,
-              }}
+      <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between px-4 py-3 gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 text-slate-300 hover:text-white transition-colors"
+              aria-label="Toggle menu"
             >
-              <BookOpen size={isMobile ? 20 : 24} color="currentColor" />
-              Flashlearn
-            </Typography>
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
 
-            {!isMobile && (
-              <Box sx={{ flexGrow: 1, display: "flex", gap: 2, ml: 6 }}>
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Button
-                      key={item.path}
-                      component={RouterLink}
-                      to={item.path}
-                      sx={{
-                        color: isActive ? "primary.main" : "text.nav",
-                        "&:hover": { color: "primary.main" },
-                        textTransform: "none",
-                        fontSize: "1rem",
-                        fontWeight: isActive ? 600 : 400,
-                      }}
-                      startIcon={<Icon size={20} />}
-                    >
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </Box>
-            )}
+            {/* Logo */}
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 text-white font-bold text-xl md:text-2xl no-underline hover:text-blue-400 transition-colors"
+            >
+              <BookOpen size={24} />
+              <span>Flashlearn</span>
+            </Link>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {/* Upgrade button (desktop) */}
-              {user && !isMobile && !isActiveSub && (
-                <Button
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-4 flex-1 ml-8">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors no-underline ${
+                      isActive
+                        ? "text-blue-400 font-semibold"
+                        : "text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-3">
+              {/* Upgrade Button (Desktop) */}
+              {user && !isActiveSub && (
+                <button
                   onClick={() => setBillingOpen(true)}
-                  variant="outlined"
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "0.875rem",
-                    mr: 1,
-                  }}
+                  className="hidden md:block px-4 py-2 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500/10 transition-colors text-sm font-medium"
                 >
                   Upgrade (KES 100)
-                </Button>
+                </button>
               )}
 
-              {/* Tiny badge: remaining prompts */}
+              {/* Free Prompts Remaining */}
               {user && remaining != null && (
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", mr: 1 }}
-                >
-                  Free left: <b>{remaining}</b>
-                </Typography>
+                <span className="hidden md:block text-sm text-slate-400">
+                  Free left: <strong className="text-white">{remaining}</strong>
+                </span>
               )}
 
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0.5 }}>
-                <Avatar
-                  sx={{
-                    bgcolor: profileIconColor,
-                    color: profileIconTextColor,
-                    width: isMobile ? 32 : 36,
-                    height: isMobile ? 32 : 36,
-                    fontWeight: "bold",
-                    fontSize: isMobile ? "0.875rem" : "1rem",
-                  }}
-                >
-                  {user?.username?.charAt(0).toUpperCase() || "U"}
-                </Avatar>
-              </IconButton>
+              {/* Profile Avatar */}
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="relative w-9 h-9 rounded-full bg-emerald-500 text-white font-bold text-sm flex items-center justify-center hover:bg-emerald-400 transition-colors"
+                aria-label="User menu"
+              >
+                {user?.username?.charAt(0).toUpperCase() || "U"}
+              </button>
 
-              {user && !isMobile && (
-                <Button
+              {/* Desktop Logout Button */}
+              {user && (
+                <button
                   onClick={handleLogout}
-                  startIcon={<LogOut size={18} />}
-                  sx={{
-                    color: "#ffffff",
-                    bgcolor: logoutButtonColor,
-                    "&:hover": { bgcolor: logoutButtonHoverColor },
-                    textTransform: "none",
-                    fontSize: "0.875rem",
-                    px: 1.5,
-                    py: 0.75,
-                  }}
+                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                 >
-                  Sign Out
-                </Button>
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
               )}
-            </Box>
+            </div>
 
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              onClick={handleMenuClose}
-              transformOrigin={{ horizontal: "right", vertical: "top" }}
-              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-              PaperProps={{
-                sx: {
-                  mt: 1,
-                  width: isMobile ? 180 : 200,
-                  bgcolor: "background.paper",
-                  border: 1,
-                  borderColor: "divider",
-                  "& .MuiMenuItem-root": { py: 1.5 },
-                },
-              }}
-            >
-              <Box sx={{ px: 2, py: 1.5 }}>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", display: "block" }}
-                >
-                  Signed in as
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 500, lineHeight: 1.2 }}
-                >
-                  {user?.username || "User"}
-                </Typography>
-              </Box>
-              <Divider />
-            </Menu>
-          </Toolbar>
-        </Container>
+            {/* Profile Dropdown Menu */}
+            {menuOpen && (
+              <div className="absolute top-16 right-4 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-slate-700">
+                  <p className="text-xs text-slate-400">Signed in as</p>
+                  <p className="text-sm font-medium text-white mt-1">
+                    {user?.username || "User"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: "block", md: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: 240,
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </AppBar>
+        {/* Mobile Navigation Drawer */}
+        {mobileOpen && (
+          <div className="md:hidden bg-slate-800 border-t border-slate-700">
+            <nav className="px-4 py-4 space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors no-underline ${
+                      isActive
+                        ? "bg-blue-500/10 text-blue-400 font-semibold"
+                        : "text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+
+              {/* Mobile: Upgrade Option */}
+              {user && !isActiveSub && (
+                <button
+                  onClick={() => {
+                    setBillingOpen(true);
+                    setMobileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-400 hover:bg-slate-700 transition-colors"
+                >
+                  <BookOpen size={18} />
+                  <span>Upgrade (KES 100)</span>
+                </button>
+              )}
+
+              {/* Mobile: Logout */}
+              {user && (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </nav>
+          </div>
+        )}
+      </header>
 
       {/* Billing Dialog */}
       <BillingDialog
         open={billingOpen}
         onClose={() => {
           setBillingOpen(false);
-          // refresh header badge after close
           getBillingStatus()
             .then(setBillingStatus)
             .catch(() => {});

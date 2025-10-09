@@ -1,57 +1,42 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
-import {
-  Container,
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
-  Button,
-  Alert,
-  MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TableContainer,
-  Paper,
-  Pagination,
-  Checkbox,
-  Toolbar,
-  Stack,
-  Divider,
-} from "@mui/material";
+import { AlertCircle, Download } from "lucide-react";
 import {
   getAdminStats,
-  getOnlineUsers,
   listUsers,
   deleteUsers,
+  createTeacherInvite,
 } from "../../utils/adminApi";
-
 import { formatEAT } from "../../utils/time";
 
-// Reuse the same envs your helper uses for the one endpoint we call locally
 const API_URL = import.meta.env.VITE_API_URL;
 const ADMIN_KEY = import.meta.env?.VITE_ADMIN_API_KEY || "";
 
 function StatCard({ label, value }) {
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
-        <Typography variant="overline" color="text.secondary">
-          {label}
-        </Typography>
-        <Typography variant="h5" sx={{ mt: 0.5 }}>
-          {value}
-        </Typography>
-      </CardContent>
-    </Card>
+    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 h-full">
+      <div className="text-xs uppercase text-slate-400 tracking-wide font-medium">
+        {label}
+      </div>
+      <div className="text-3xl font-bold mt-2 text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function Alert({ severity, children }) {
+  const colors = {
+    warning: "bg-yellow-500/10 border-yellow-500/20 text-yellow-200",
+    error: "bg-red-500/10 border-red-500/20 text-red-200",
+    success: "bg-green-500/10 border-green-500/20 text-green-200",
+    info: "bg-blue-500/10 border-blue-500/20 text-blue-200",
+  };
+
+  return (
+    <div
+      className={`rounded-lg border p-4 flex items-start gap-3 ${colors[severity]}`}
+    >
+      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+      <div className="flex-1">{children}</div>
+    </div>
   );
 }
 
@@ -59,34 +44,49 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold" }}>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6 text-slate-100">
         Admin Dashboard
-      </Typography>
+      </h1>
 
-      {!ADMIN_KEY ? (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+      {!ADMIN_KEY && (
+        <Alert severity="warning">
           <strong>VITE_ADMIN_API_KEY</strong> is not set. Admin calls will fail.
         </Alert>
-      ) : null}
+      )}
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Overview" />
-        <Tab label="Create Demo Users" />
-        <Tab label="Users" />
-      </Tabs>
+      <div className="border-b border-slate-700 mb-6">
+        <div className="flex gap-1">
+          {["Overview", "Create Demo Users", "Users", "Teacher Invites"].map(
+            (label, i) => (
+              <button
+                key={i}
+                onClick={() => setTab(i)}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  tab === i
+                    ? "text-blue-400 border-b-2 border-blue-400"
+                    : "text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                {label}
+              </button>
+            )
+          )}
+        </div>
+      </div>
 
       {tab === 0 && <OverviewTab />}
       {tab === 1 && <CreateDemoTab />}
       {tab === 2 && <UsersTab />}
-    </Container>
+      {tab === 3 && <TeacherInvitesTab />}
+    </div>
   );
 }
 
 /* ---------------------------- Overview Tab ---------------------------- */
 
 function OverviewTab() {
-  const [within, setWithin] = useState(5); // minutes window for "online"
+  const [within, setWithin] = useState(5);
   const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
 
@@ -102,73 +102,57 @@ function OverviewTab() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 15000); // refresh every 15s
+    const t = setInterval(load, 15000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [within]);
 
   if (err) return <Alert severity="error">{err}</Alert>;
-  if (!stats) return <Typography>Loading…</Typography>;
+  if (!stats) return <p className="text-slate-400">Loading…</p>;
 
   const unverified = (stats.total_users || 0) - (stats.verified_users || 0);
 
   return (
-    <Box>
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Total" value={stats.total_users} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Verified" value={stats.verified_users} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Unverified" value={unverified} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Demo" value={stats.demo_users} />
-        </Grid>
-      </Grid>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total" value={stats.total_users} />
+        <StatCard label="Verified" value={stats.verified_users} />
+        <StatCard label="Unverified" value={unverified} />
+        <StatCard label="Demo" value={stats.demo_users} />
+      </div>
 
-      <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} sm={6}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                spacing={2}
-                sx={{ mb: 1 }}
-              >
-                <Typography variant="overline" color="text.secondary">
-                  Online (≈{stats.within_minutes}m)
-                </Typography>
-                <TextField
-                  size="small"
-                  label="Window (minutes)"
-                  type="number"
-                  sx={{ width: 160 }}
-                  value={within}
-                  onChange={(e) =>
-                    setWithin(
-                      Math.max(1, Math.min(120, Number(e.target.value) || 5))
-                    )
-                  }
-                />
-              </Stack>
-              <Typography variant="h5">{stats.online_now}</Typography>
-              <Typography variant="body2" sx={{ mt: 1 }} color="text.secondary">
-                Active last {stats.within_minutes} minute(s)
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <div className="text-xs uppercase text-slate-400 tracking-wide font-medium">
+              Online (≈{stats.within_minutes}m)
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs text-slate-400 mb-1">
+                Window (minutes)
+              </label>
+              <input
+                type="number"
+                className="w-40 bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
+                value={within}
+                onChange={(e) =>
+                  setWithin(
+                    Math.max(1, Math.min(120, Number(e.target.value) || 5))
+                  )
+                }
+              />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-slate-100">
+            {stats.online_now}
+          </div>
+          <p className="text-sm text-slate-400 mt-2">
+            Active last {stats.within_minutes} minute(s)
+          </p>
+        </div>
 
-        <Grid item xs={12} sm={6}>
-          <StatCard label="New (24h)" value={stats.new_last_24h} />
-        </Grid>
-      </Grid>
-    </Box>
+        <StatCard label="New (24h)" value={stats.new_last_24h} />
+      </div>
+    </div>
   );
 }
 
@@ -203,7 +187,6 @@ function CreateDemoTab() {
     URL.revokeObjectURL(url);
   };
 
-  // Local call (only this endpoint; others rely on utils/adminApi.js)
   const createBatch = async () => {
     try {
       setErr("");
@@ -238,127 +221,137 @@ function CreateDemoTab() {
   };
 
   return (
-    <Box>
-      {err && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
-        </Alert>
-      )}
+    <div className="space-y-6">
+      {err && <Alert severity="error">{err}</Alert>}
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Count"
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">Count</label>
+          <input
             type="number"
-            fullWidth
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={count}
             onChange={(e) => setCount(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Prefix"
-            fullWidth
+        </div>
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">Prefix</label>
+          <input
+            type="text"
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Email domain"
-            fullWidth
+        </div>
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">
+            Email domain
+          </label>
+          <input
+            type="text"
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Expires in (days)"
+        </div>
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">
+            Expires in (days)
+          </label>
+          <input
             type="number"
-            fullWidth
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={expires}
             onChange={(e) => setExpires(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label="Fixed password (optional)"
-            fullWidth
-            value={fixedPw}
-            onChange={(e) => setFixedPw(e.target.value)}
-          />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
-      <Button variant="contained" onClick={createBatch} disabled={loading}>
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">
+          Fixed password (optional)
+        </label>
+        <input
+          type="text"
+          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+          value={fixedPw}
+          onChange={(e) => setFixedPw(e.target.value)}
+        />
+      </div>
+
+      <button
+        onClick={createBatch}
+        disabled={loading}
+        className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 px-6 py-2.5 rounded-lg font-medium transition-colors"
+      >
         {loading ? "Creating…" : "Create demo users"}
-      </Button>
+      </button>
 
-      {result?.users?.length ? (
-        <Box sx={{ mt: 3 }}>
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Created {result.count} users
-          </Alert>
+      {result?.users?.length > 0 && (
+        <div className="space-y-4">
+          <Alert severity="success">Created {result.count} users</Alert>
 
-          <TableContainer component={Paper} sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Username</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Password</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700 bg-slate-900/50">
+                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                    Username
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                    Email
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                    Password
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {result.users.map((u) => (
-                  <TableRow key={u.email}>
-                    <TableCell>{u.username}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.password}</TableCell>
-                  </TableRow>
+                  <tr
+                    key={u.email}
+                    className="border-b border-slate-700/50 hover:bg-slate-700/30"
+                  >
+                    <td className="px-6 py-3 text-slate-200">{u.username}</td>
+                    <td className="px-6 py-3 text-slate-200">{u.email}</td>
+                    <td className="px-6 py-3 text-slate-200">{u.password}</td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </tbody>
+            </table>
+          </div>
 
           {asCSV && (
-            <Button variant="outlined" onClick={downloadCSV}>
+            <button
+              onClick={downloadCSV}
+              className="flex items-center gap-2 border border-slate-600 hover:bg-slate-800 px-6 py-2.5 rounded-lg font-medium transition-colors"
+            >
+              <Download className="w-4 h-4" />
               Download CSV
-            </Button>
+            </button>
           )}
-        </Box>
-      ) : null}
-    </Box>
+        </div>
+      )}
+    </div>
   );
 }
 
 /* ------------------------------- Users Tab ------------------------------ */
 
 function UsersTab() {
-  // Filters
   const [type, setType] = useState("all");
   const [q, setQ] = useState("");
   const [activeWithin, setActiveWithin] = useState("");
-
-  // Paging
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
-
-  // Data
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Selection for deletes
   const [selected, setSelected] = useState(new Set());
-
-  // Slow-mode demo knobs
-  const [commitPer, setCommitPer] = useState("row"); // 'user' or 'row'
-  const [sleepMs, setSleepMs] = useState(20); // 0..N
+  const [commitPer, setCommitPer] = useState("row");
+  const [sleepMs, setSleepMs] = useState(20);
   const [echoSql, setEchoSql] = useState(true);
-
-  // Last operation result (for UI feedback)
-  const [opInfo, setOpInfo] = useState(null); // { performance, timing_seconds, related_records_deleted, ... }
+  const [opInfo, setOpInfo] = useState(null);
 
   const paramsForList = () => {
     const params = {
@@ -368,11 +361,9 @@ function UsersTab() {
     };
     if (q.trim()) params.q = q.trim();
     if (activeWithin) params.active_within = Number(activeWithin);
-
     if (type === "demo") params.is_demo = true;
     else if (type === "verified") params.email_verified = true;
     else if (type === "unverified") params.email_verified = false;
-
     return params;
   };
 
@@ -380,7 +371,7 @@ function UsersTab() {
     try {
       setErr("");
       setLoading(true);
-      setSelected(new Set()); // clear selection on reload
+      setSelected(new Set());
       const res = await listUsers(paramsForList());
       setData(res);
     } catch (e) {
@@ -392,7 +383,6 @@ function UsersTab() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, q, page, perPage, activeWithin]);
 
   const totalPages = Math.max(1, Math.ceil((data?.total || 0) / perPage));
@@ -423,8 +413,6 @@ function UsersTab() {
 
     try {
       setOpInfo(null);
-
-      // 1) Dry-run preview (with same knobs)
       const preview = await deleteUsers(emails, {
         strategy,
         commit_per: commitPer,
@@ -454,10 +442,8 @@ function UsersTab() {
         .filter(Boolean)
         .join("\n");
 
-      // eslint-disable-next-line no-alert
       if (!window.confirm(msg)) return;
 
-      // 2) Actual delete
       const res = await deleteUsers(emails, {
         strategy,
         commit_per: commitPer,
@@ -474,7 +460,6 @@ function UsersTab() {
         not_found: res.not_found?.length || 0,
       });
 
-      // eslint-disable-next-line no-alert
       alert(
         [
           `Mode: ${res.performance}`,
@@ -492,69 +477,67 @@ function UsersTab() {
 
       await load();
     } catch (e) {
-      // eslint-disable-next-line no-alert
       alert(e.message || "Delete failed");
     }
   }
 
   return (
-    <Box>
-      {err && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
-        </Alert>
-      )}
+    <div className="space-y-6">
+      {err && <Alert severity="error">{err}</Alert>}
 
-      {/* Filters & paging */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={3}>
-          <TextField
-            select
-            label="Type"
-            fullWidth
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">Type</label>
+          <select
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={type}
             onChange={(e) => {
               setPage(1);
               setType(e.target.value);
             }}
           >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="demo">Demo</MenuItem>
-            <MenuItem value="verified">Verified</MenuItem>
-            <MenuItem value="unverified">Unverified</MenuItem>
-          </TextField>
-        </Grid>
+            <option value="all">All</option>
+            <option value="demo">Demo</option>
+            <option value="verified">Verified</option>
+            <option value="unverified">Unverified</option>
+          </select>
+        </div>
 
-        <Grid item xs={12} sm={3}>
-          <TextField
-            label="Active within (mins)"
-            fullWidth
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">
+            Active within (mins)
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. 5"
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={activeWithin}
             onChange={(e) => {
               setPage(1);
               setActiveWithin(e.target.value);
             }}
-            placeholder="e.g. 5"
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Search (email or username)"
-            fullWidth
+        <div className="md:col-span-2">
+          <label className="block text-sm text-slate-400 mb-1">
+            Search (email or username)
+          </label>
+          <input
+            type="text"
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={q}
             onChange={(e) => {
               setPage(1);
               setQ(e.target.value);
             }}
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={6} sm={1}>
-          <TextField
-            select
-            label="Per page"
-            fullWidth
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">Per page</label>
+          <select
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
             value={perPage}
             onChange={(e) => {
               setPage(1);
@@ -562,207 +545,406 @@ function UsersTab() {
             }}
           >
             {[10, 20, 50, 100, 1000].map((n) => (
-              <MenuItem key={n} value={n}>
+              <option key={n} value={n}>
                 {n}
-              </MenuItem>
+              </option>
             ))}
-          </TextField>
-        </Grid>
+          </select>
+        </div>
 
-        <Grid item xs={6} sm={1} sx={{ display: "flex", alignItems: "center" }}>
-          <Button
-            variant="outlined"
+        <div className="flex items-end">
+          <button
             onClick={load}
             disabled={loading}
-            fullWidth
+            className="w-full border border-slate-600 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600 px-4 py-2 rounded-lg font-medium transition-colors"
           >
             {loading ? "…" : "Refresh"}
-          </Button>
-        </Grid>
-      </Grid>
+          </button>
+        </div>
+      </div>
 
-      {/* Delete toolbar with FAST/SLOW buttons and slow knobs */}
-      <Toolbar
-        disableGutters
-        sx={{
-          mb: 1,
-          minHeight: "unset !important",
-          display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-t border-b border-slate-700">
+        <p className="text-sm text-slate-400">
           {data?.total ?? 0} total • {items.length} shown
-        </Typography>
+        </p>
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems="center"
-        >
-          {/* Slow knobs (only affect slow strategy) */}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <TextField
-              select
-              size="small"
-              label="Commit per"
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">Commit per</label>
+            <select
+              className="bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
               value={commitPer}
               onChange={(e) => setCommitPer(e.target.value)}
-              sx={{ width: 150 }}
             >
-              <MenuItem value="user">user</MenuItem>
-              <MenuItem value="row">row</MenuItem>
-            </TextField>
+              <option value="user">user</option>
+              <option value="row">row</option>
+            </select>
+          </div>
 
-            <TextField
-              size="small"
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">sleep ms</label>
+            <input
               type="number"
-              label="sleep ms"
+              className="w-24 bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
               value={sleepMs}
               onChange={(e) =>
                 setSleepMs(Math.max(0, Number(e.target.value) || 0))
               }
-              sx={{ width: 120 }}
             />
+          </div>
 
-            <Button
-              variant={echoSql ? "contained" : "outlined"}
-              onClick={() => setEchoSql((v) => !v)}
-            >
-              SQL Echo {echoSql ? "ON" : "OFF"}
-            </Button>
-          </Stack>
+          <button
+            onClick={() => setEchoSql((v) => !v)}
+            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+              echoSql
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "border border-slate-600 hover:bg-slate-800 text-slate-300"
+            }`}
+          >
+            SQL Echo {echoSql ? "ON" : "OFF"}
+          </button>
 
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ display: { xs: "none", sm: "block" } }}
-          />
+          <div className="h-6 w-px bg-slate-700" />
 
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="contained"
-              color="error"
-              disabled={!selected.size}
-              onClick={() => runDelete("fast")}
-            >
-              Delete Selected (FAST)
-            </Button>
+          <button
+            onClick={() => runDelete("fast")}
+            disabled={!selected.size}
+            className="bg-red-600 hover:bg-red-700 disabled:bg-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Delete (FAST)
+          </button>
 
-            <Button
-              variant="outlined"
-              color="warning"
-              disabled={!selected.size}
-              onClick={() => runDelete("slow")}
-            >
-              Delete Selected (SLOW)
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
-              disabled={!selected.size}
-              onClick={() => runDelete("turbo")}
-            >
-              Delete Selected (TURBO)
-            </Button>
-          </Stack>
-        </Stack>
-      </Toolbar>
+          <button
+            onClick={() => runDelete("slow")}
+            disabled={!selected.size}
+            className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 disabled:border-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Delete (SLOW)
+          </button>
+
+          <button
+            onClick={() => runDelete("turbo")}
+            disabled={!selected.size}
+            className="border border-purple-600 text-purple-500 hover:bg-purple-600/10 disabled:border-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Delete (TURBO)
+          </button>
+        </div>
+      </div>
 
       {opInfo && (
-        <Alert severity="info" sx={{ mb: 1 }}>
+        <Alert severity="info">
           Mode: <strong>{opInfo.performance}</strong> • Time:{" "}
           <strong>{opInfo.timing_seconds ?? "?"}s</strong>
-          {opInfo.related ? (
+          {opInfo.related && (
             <>
               {" "}
               • Children — progress: {opInfo.related.progress ?? "-"},
               flashcards: {opInfo.related.flashcards ?? "-"}, decks:{" "}
               {opInfo.related.decks ?? "-"}
             </>
-          ) : null}
+          )}
         </Alert>
       )}
 
-      <Divider sx={{ mb: 1 }} />
-
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={
-                    selected.size > 0 && selected.size < (items?.length || 0)
-                  }
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-700 bg-slate-900/50">
+              <th className="px-6 py-3">
+                <input
+                  type="checkbox"
                   checked={
                     items.length > 0 &&
                     items.every((u) => selected.has(u.email))
                   }
                   onChange={toggleAllOnPage}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-900"
                 />
-              </TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Demo</TableCell>
-              <TableCell>Verified</TableCell>
-              <TableCell>Last seen</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Demo expires</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Username
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Email
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Demo
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Verified
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Last seen
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Created
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-slate-300">
+                Demo expires
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {items.map((u) => {
               const checked = selected.has(u.email);
               return (
-                <TableRow key={u.id} hover>
-                  <TableCell padding="checkbox">
-                    <Checkbox
+                <tr
+                  key={u.id}
+                  className="border-b border-slate-700/50 hover:bg-slate-700/30"
+                >
+                  <td className="px-6 py-3">
+                    <input
+                      type="checkbox"
                       checked={checked}
                       onChange={() => toggleOne(u.email)}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-900"
                     />
-                  </TableCell>
-                  <TableCell>{u.username}</TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>{u.is_demo ? "Yes" : "No"}</TableCell>
-                  <TableCell>{u.email_verified ? "Yes" : "No"}</TableCell>
-                  <TableCell>{formatEAT(u.last_seen)}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="px-6 py-3 text-slate-200">{u.username}</td>
+                  <td className="px-6 py-3 text-slate-200">{u.email}</td>
+                  <td className="px-6 py-3 text-slate-200">
+                    {u.is_demo ? "Yes" : "No"}
+                  </td>
+                  <td className="px-6 py-3 text-slate-200">
+                    {u.email_verified ? "Yes" : "No"}
+                  </td>
+                  <td className="px-6 py-3 text-slate-200">
+                    {formatEAT(u.last_seen)}
+                  </td>
+                  <td className="px-6 py-3 text-slate-200">
                     {u.created_at
                       ? new Date(u.created_at).toLocaleString()
                       : "—"}
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="px-6 py-3 text-slate-200">
                     {u.demo_expires_at
                       ? new Date(u.demo_expires_at).toLocaleString()
                       : "—"}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
             {!items.length && (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
+              <tr>
+                <td
+                  colSpan={8}
+                  className="px-6 py-8 text-center text-slate-400"
+                >
                   No users
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
-      <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(_, v) => setPage(v)}
-          color="primary"
-          shape="rounded"
-        />
-      </Box>
-    </Box>
+      <div className="flex justify-center">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 border border-slate-600 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300"
+          >
+            Previous
+          </button>
+          <div className="flex items-center px-4 py-2 text-slate-300">
+            Page {page} of {totalPages}
+          </div>
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 border border-slate-600 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------- Teacher Invites Tab ------------------------- */
+
+function TeacherInvitesTab() {
+  const [maxUses, setMaxUses] = useState(1);
+  const [days, setDays] = useState(30);
+  const [invite, setInvite] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isDev = !!import.meta.env.DEV;
+  const base = window.location.origin;
+  const link = invite?.code ? `${base}/teacher?code=${invite.code}` : "";
+
+  const makeInvite = async () => {
+    try {
+      setErr("");
+      setLoading(true);
+      const payload = {
+        max_uses: Number(maxUses) || 1,
+        expires_in_days: Number(days) || undefined,
+      };
+      const inv = await createTeacherInvite(payload);
+      setInvite(inv);
+    } catch (e) {
+      setErr(e.message || "Failed to create invite");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Copied!");
+    } catch {
+      // no-op
+    }
+  };
+
+  const makeMeTeacher = async () => {
+    try {
+      setLoading(true);
+      const inv =
+        invite ||
+        (await createTeacherInvite({ max_uses: 1, expires_in_days: 30 }));
+      await fetch(`${API_URL}/auth/teacher/redeem`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            localStorage.getItem("authToken") ||
+            localStorage.getItem("jwt") ||
+            ""
+          }`,
+        },
+        body: JSON.stringify({ code: inv.code }),
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      });
+      window.location.href = "/teacher";
+    } catch (e) {
+      setErr(e.message || "Self-promote failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {!ADMIN_KEY && (
+        <Alert severity="warning">
+          <strong>VITE_ADMIN_API_KEY</strong> is not set. Admin calls will fail.
+        </Alert>
+      )}
+
+      {err && <Alert severity="error">{err}</Alert>}
+
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h2 className="text-xl font-semibold mb-4 text-slate-100">
+          Create a Teacher Invite
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">
+              Max uses
+            </label>
+            <input
+              type="number"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">
+              Expires in (days)
+            </label>
+            <input
+              type="number"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+              value={days}
+              onChange={(e) => setDays(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={makeInvite}
+              disabled={loading || !ADMIN_KEY}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              {loading ? "Creating…" : "Create invite"}
+            </button>
+          </div>
+        </div>
+
+        {invite && (
+          <div className="space-y-4 pt-4 border-t border-slate-700">
+            <Alert severity="success">Invite created.</Alert>
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm text-slate-400 mb-1">
+                  Code
+                </label>
+                <input
+                  type="text"
+                  value={invite.code}
+                  disabled
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-400"
+                />
+              </div>
+              <button
+                onClick={() => copy(invite.code)}
+                className="border border-slate-600 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm text-slate-400 mb-1">
+                  Invite link
+                </label>
+                <input
+                  type="text"
+                  value={link}
+                  disabled
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-400"
+                />
+              </div>
+              <button
+                onClick={() => copy(link)}
+                className="border border-slate-600 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Copy link
+              </button>
+            </div>
+
+            {isDev && (
+              <button
+                onClick={makeMeTeacher}
+                disabled={loading}
+                className="w-full border border-slate-600 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                {loading ? "Applying…" : "Make me a teacher (dev)"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <p className="text-sm text-slate-400">
+        Tip: share the link with a logged-in user. When they open{" "}
+        <code className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+          /teacher?code=…
+        </code>
+        , the portal will auto-redeem and unlock.
+      </p>
+    </div>
   );
 }

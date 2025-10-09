@@ -1,5 +1,3 @@
-"use client";
-import { Box, Card, CardContent, Typography, Button } from "@mui/material";
 import { motion } from "framer-motion";
 import { Clock, Zap, Play } from "lucide-react";
 
@@ -9,115 +7,45 @@ const QuickStudyCard = () => {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 0.3 }}
+      className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-xl overflow-hidden relative"
     >
-      <Card
-        sx={{
-          background: "linear-gradient(135deg, #1e293b, #334155)", // dark gradient
-          color: "white",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Background decorative elements */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: -20,
-            right: -20,
-            width: 100,
-            height: 100,
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "50%",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: -30,
-            left: -30,
-            width: 80,
-            height: 80,
-            background: "rgba(255,255,255,0.05)",
-            borderRadius: "50%",
-          }}
-        />
+      {/* Background decorative elements */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-10 translate-x-10" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12" />
 
-        <CardContent sx={{ p: 4, position: "relative", zIndex: 1 }}>
-          {/* Header */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 2,
-                bgcolor: "rgba(255,255,255,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Clock size={24} color="white" />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "white" }}>
-              Quick Study
-            </Typography>
-          </Box>
+      <div className="p-6 relative z-10">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+            <Clock size={24} className="text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Quick Study</h3>
+        </div>
 
-          {/* Content */}
-          <Typography
-            variant="body1"
-            sx={{
-              color: "rgba(255,255,255,0.9)",
-              mb: 4,
-              lineHeight: 1.6,
-            }}
-          >
-            Ready for a quick study session? Choose a deck to review and improve
-            your mastery.
-          </Typography>
+        {/* Content */}
+        <p className="text-white/90 mb-6 leading-relaxed">
+          Ready for a quick study session? Choose a deck to review and improve
+          your mastery.
+        </p>
 
-          {/* Features */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-              <Zap size={16} color="rgba(255,255,255,0.8)" />
-              <Typography
-                variant="body2"
-                sx={{ color: "rgba(255,255,255,0.8)" }}
-              >
-                Smart card selection
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Clock size={16} color="rgba(255,255,255,0.8)" />
-              <Typography
-                variant="body2"
-                sx={{ color: "rgba(255,255,255,0.8)" }}
-              >
-                5–15 minute sessions
-              </Typography>
-            </Box>
-          </Box>
+        {/* Features */}
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Zap size={16} className="text-white/80" />
+            <span className="text-sm text-white/80">Smart card selection</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Clock size={16} className="text-white/80" />
+            <span className="text-sm text-white/80">5–15 minute sessions</span>
+          </div>
+        </div>
 
-          {/* Action Button */}
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<Play size={20} />}
-            sx={{
-              bgcolor: "#0ea5e9", // bright accent (sky-500)
-              color: "white",
-              fontWeight: 600,
-              py: 1.5,
-              "&:hover": {
-                bgcolor: "#38bdf8",
-                transform: "translateY(-2px)",
-              },
-              transition: "all 0.3s ease",
-            }}
-          >
-            Start Studying
-          </Button>
-        </CardContent>
-      </Card>
+        {/* Action Button */}
+        <button className="w-full bg-sky-500 hover:bg-sky-400 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-500/30">
+          <Play size={20} />
+          <span>Start Studying</span>
+        </button>
+      </div>
     </motion.div>
   );
 };

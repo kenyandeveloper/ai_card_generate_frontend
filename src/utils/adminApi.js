@@ -101,3 +101,23 @@ export async function deleteUsersByIds(user_ids = [], opts = {}) {
   if (!res.ok) throw new Error(`delete_by_ids ${res.status}`);
   return res.json();
 }
+
+// ...
+
+export async function createTeacherInvite(
+  payload = { max_uses: 1, expires_in_days: 30 }
+) {
+  const res = await fetch(`${API_URL}/admin/teacher-invites`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Key": ADMIN_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+  }
+  return res.json(); // { id, code, max_uses, expires_at }
+}

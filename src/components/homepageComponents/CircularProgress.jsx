@@ -28,13 +28,13 @@ export default function CircularProgress({ percentage, label, size = 120 }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#3b82f6"
+            stroke="currentColor"
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            className="transition-all duration-500 ease-out"
+            className="text-purple-500 transition-all duration-500 ease-out"
           />
         </svg>
 
