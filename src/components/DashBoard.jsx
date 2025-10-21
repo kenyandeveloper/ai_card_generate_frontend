@@ -9,15 +9,19 @@ import { calculateStats } from "../utils/statCalculations";
 import { useDecks } from "../hooks/useDecks";
 import { useDashboardStats, useProgress } from "../hooks/useProgress";
 import { DataFetchWrapper } from "./common/DataFetchWrapper";
+import { getToken } from "../utils/authToken";
 
 const Dashboard = () => {
   const { user, isAuthenticated, loading } = useUser();
   const navigate = useNavigate();
-  const theme = useTheme(); // still used for responsive breakpoints
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Force dark mode for the dashboard UI, regardless of system preference
+  // Force dark mode for the dashboard UI
   const isDarkMode = true;
+
+  // Check auth before fetching data
+  const hasAuth = Boolean(isAuthenticated && getToken());
 
   const {
     decks,
@@ -25,8 +29,9 @@ const Dashboard = () => {
     error: decksError,
     refetch: refetchDecks,
   } = useDecks({
-    enabled: Boolean(isAuthenticated),
+    enabled: hasAuth,
   });
+
   const [metricsLoading, setMetricsLoading] = useState(true);
   const {
     allProgress,
@@ -34,13 +39,16 @@ const Dashboard = () => {
     loading: progressLoading,
     error: progressError,
   } = useProgress();
+
   const {
     data: apiStats,
     decks: dashboardDecks,
     loading: statsLoading,
     error: dashboardError,
     refetch: refetchDashboard,
-  } = useDashboardStats();
+  } = useDashboardStats(
+    !hasAuth // Skip fetch if no auth
+  );
 
   useEffect(() => {
     if (import.meta.env?.DEV) {
@@ -49,38 +57,47 @@ const Dashboard = () => {
         dashboardDecks,
         statsLoading,
         dashboardError,
+        hasAuth,
       });
     }
-  }, [apiStats, dashboardDecks, statsLoading, dashboardError]);
+  }, [apiStats, dashboardDecks, statsLoading, dashboardError, hasAuth]);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate("/login");
     }
   }, [loading, isAuthenticated, navigate]);
 
+  // Fetch progress data
   useEffect(() => {
-    if (!user) {
+    if (!user || !hasAuth) {
       return;
     }
+
     let cancelled = false;
     const loadProgress = async () => {
       setMetricsLoading(true);
       try {
         await fetchAllProgress();
       } catch (error) {
-        console.error("Error fetching progress data:", error);
+        // Only log non-auth errors
+        if (error?.response?.status !== 401) {
+          console.error("Error fetching progress data:", error);
+        }
       } finally {
         if (!cancelled) {
           setMetricsLoading(false);
         }
       }
     };
+
     loadProgress();
+
     return () => {
       cancelled = true;
     };
-  }, [user, fetchAllProgress]);
+  }, [user, hasAuth]); // Removed fetchAllProgress from deps to prevent loops
 
   const progress = useMemo(
     () => (Array.isArray(allProgress) ? allProgress : []),
@@ -103,10 +120,10 @@ const Dashboard = () => {
   }, [progress, apiStats]);
 
   useEffect(() => {
-    if (progressError) {
+    if (progressError && progressError !== "Authentication required") {
       console.error("Progress context error:", progressError);
     }
-    if (dashboardError) {
+    if (dashboardError && dashboardError !== "Authentication required") {
       console.error("Dashboard stats error:", dashboardError);
     }
   }, [progressError, dashboardError]);
@@ -118,9 +135,25 @@ const Dashboard = () => {
     progressLoading ||
     statsLoading;
 
-  const combinedError = decksError || progressError || dashboardError;
+  // Filter out auth errors from display
+  const displayError = useMemo(() => {
+    if (!hasAuth) return null;
+
+    const errors = [decksError, progressError, dashboardError].filter(Boolean);
+    const nonAuthErrors = errors.filter(
+      (err) =>
+        err !== "Authentication required" &&
+        !err.includes("Missing Authorization Header")
+    );
+
+    return nonAuthErrors.length > 0 ? nonAuthErrors[0] : null;
+  }, [decksError, progressError, dashboardError, hasAuth]);
 
   const handleRetry = () => {
+    if (import.meta.env?.DEV) {
+      console.debug("[Dashboard] Manual retry triggered");
+    }
+
     if (decksError) {
       refetchDecks();
     }
@@ -136,7 +169,7 @@ const Dashboard = () => {
     <DashboardLayout>
       <DataFetchWrapper
         loading={isMetricsLoading}
-        error={combinedError}
+        error={displayError}
         onRetry={handleRetry}
         loadingComponent={
           <DashboardSkeleton isMobile={isMobile} theme={theme} />
@@ -153,7 +186,7 @@ const Dashboard = () => {
           progress={progress}
           isLoading={false}
           theme={theme}
-          isDarkMode={isDarkMode} // always true
+          isDarkMode={isDarkMode}
           navigate={navigate}
         />
       </DataFetchWrapper>

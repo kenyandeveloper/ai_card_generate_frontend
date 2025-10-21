@@ -2,13 +2,17 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { progressApi, dashboardApi } from "../utils/apiClient";
 import { handleApiError } from "../services/errorHandler";
+import { getToken } from "../utils/authToken";
 
 const FIVE_MINUTES = 5 * 60 * 1000;
+const MAX_RETRY_ATTEMPTS = 3;
 
 const ProgressContext = createContext(null);
 
@@ -31,6 +35,36 @@ export const ProgressProvider = ({ children }) => {
   const [usageInfo, setUsageInfo] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
 
+  // Circuit breaker refs
+  const retryCountRef = useRef({});
+  const fetchInProgressRef = useRef({});
+
+  const canAttemptFetch = useCallback((key) => {
+    if (!getToken()) {
+      if (import.meta.env?.DEV) {
+        console.debug(`[ProgressContext] No auth token for ${key}`);
+      }
+      return false;
+    }
+
+    if (fetchInProgressRef.current[key]) {
+      if (import.meta.env?.DEV) {
+        console.debug(`[ProgressContext] Fetch in progress for ${key}`);
+      }
+      return false;
+    }
+
+    const retryCount = retryCountRef.current[key] || 0;
+    if (retryCount >= MAX_RETRY_ATTEMPTS) {
+      if (import.meta.env?.DEV) {
+        console.warn(`[ProgressContext] Max retries reached for ${key}`);
+      }
+      return false;
+    }
+
+    return true;
+  }, []);
+
   const setTimestamp = useCallback((key) => {
     setCacheTimestamp((prev) => ({
       ...prev,
@@ -52,10 +86,19 @@ export const ProgressProvider = ({ children }) => {
       if (!deckId) return null;
 
       const key = String(deckId);
-      const cached = progressByDeck[key];
-      if (!forceRefresh && cached && isFresh(key)) {
-        return cached;
+
+      if (!forceRefresh) {
+        const cached = progressByDeck[key];
+        if (cached && isFresh(key)) {
+          return cached;
+        }
       }
+
+      if (!canAttemptFetch(key)) {
+        return progressByDeck[key] || null;
+      }
+
+      fetchInProgressRef.current[key] = true;
 
       try {
         setLoading(true);
@@ -66,25 +109,41 @@ export const ProgressProvider = ({ children }) => {
           [key]: data,
         }));
         setTimestamp(key);
+
+        // Reset retry count on success
+        retryCountRef.current[key] = 0;
+
         return data;
       } catch (err) {
+        retryCountRef.current[key] = (retryCountRef.current[key] || 0) + 1;
+
         const errorInfo = handleApiError(err);
-        setError(errorInfo.message);
+        if (err?.response?.status !== 401) {
+          setError(errorInfo.message);
+        }
         console.error("Failed to fetch progress for deck:", errorInfo);
         throw err;
       } finally {
         setLoading(false);
+        fetchInProgressRef.current[key] = false;
       }
     },
-    [isFresh, progressByDeck, setTimestamp]
+    [isFresh, progressByDeck, setTimestamp, canAttemptFetch]
   );
 
   const fetchAllProgress = useCallback(
     async ({ forceRefresh = false } = {}) => {
       const key = "__all__";
+
       if (!forceRefresh && allProgress && isFresh(key)) {
         return allProgress;
       }
+
+      if (!canAttemptFetch(key)) {
+        return allProgress || [];
+      }
+
+      fetchInProgressRef.current[key] = true;
 
       try {
         setLoading(true);
@@ -92,17 +151,26 @@ export const ProgressProvider = ({ children }) => {
         const data = await progressApi.list();
         setAllProgress(Array.isArray(data) ? data : []);
         setTimestamp(key);
+
+        // Reset retry count on success
+        retryCountRef.current[key] = 0;
+
         return data;
       } catch (err) {
+        retryCountRef.current[key] = (retryCountRef.current[key] || 0) + 1;
+
         const errorInfo = handleApiError(err);
-        setError(errorInfo.message);
+        if (err?.response?.status !== 401) {
+          setError(errorInfo.message);
+        }
         console.error("Failed to fetch overall progress:", errorInfo);
         throw err;
       } finally {
         setLoading(false);
+        fetchInProgressRef.current[key] = false;
       }
     },
-    [allProgress, isFresh, setTimestamp]
+    [allProgress, isFresh, setTimestamp, canAttemptFetch]
   );
 
   const normalizeDashboardPayload = useCallback((payload) => {
@@ -204,6 +272,7 @@ export const ProgressProvider = ({ children }) => {
   const fetchDashboardStats = useCallback(
     async ({ forceRefresh = false } = {}) => {
       const key = "dashboard";
+
       if (!forceRefresh && dashboardStats && isFresh(key)) {
         if (import.meta.env?.DEV) {
           console.debug("[ProgressContext] Using cached dashboard stats");
@@ -211,17 +280,20 @@ export const ProgressProvider = ({ children }) => {
         return dashboardStats;
       }
 
+      if (!canAttemptFetch(key)) {
+        return dashboardStats;
+      }
+
+      fetchInProgressRef.current[key] = true;
+
       try {
         setLoading(true);
         setError(null);
         const data = await dashboardApi.fetchDashboard();
         const normalized = normalizeDashboardPayload(data);
         setUsageInfo(data?.usage ?? null);
-        const planKey = (
-          data?.usage?.plan_type ??
-          data?.usage?.plan ??
-          ""
-        )
+
+        const planKey = (data?.usage?.plan_type ?? data?.usage?.plan ?? "")
           .toString()
           .toLowerCase();
         const entitlements = Array.isArray(data?.usage?.entitlements)
@@ -229,36 +301,53 @@ export const ProgressProvider = ({ children }) => {
               (item || "").toString().toLowerCase()
             )
           : [];
-        const premiumPlans = ["premium", "premium_monthly", "premium_daily", "daily"];
+        const premiumPlans = [
+          "premium",
+          "premium_monthly",
+          "premium_daily",
+          "daily",
+        ];
         const hasPremiumPlan =
           premiumPlans.some((slug) => planKey.includes(slug)) ||
           entitlements.some(
-            (entry) =>
-              entry.includes("premium") || entry.includes("daily_pass")
+            (entry) => entry.includes("premium") || entry.includes("daily_pass")
           );
         setIsPremium(hasPremiumPlan);
+
         if (import.meta.env?.DEV) {
-          console.debug("[ProgressContext] Raw dashboard response:", data);
-          console.debug("[ProgressContext] Normalized dashboard response:", normalized);
-          console.debug("[ProgressContext] Usage:", data?.usage);
-          console.debug("[ProgressContext] Plan:", data?.usage?.plan);
-          console.debug("[ProgressContext] Plan type:", data?.usage?.plan_type);
+          console.debug("[ProgressContext] Dashboard fetched successfully");
         }
+
         setDashboardStats(normalized);
         setTimestamp(key);
+
+        // Reset retry count on success
+        retryCountRef.current[key] = 0;
+
         return normalized;
       } catch (err) {
+        retryCountRef.current[key] = (retryCountRef.current[key] || 0) + 1;
+
         const errorInfo = handleApiError(err);
-        setError(errorInfo.message);
-      console.error("Failed to fetch dashboard stats:", errorInfo);
-      setUsageInfo(null);
-      setIsPremium(false);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  },
-    [dashboardStats, isFresh, setTimestamp, normalizeDashboardPayload]
+        if (err?.response?.status !== 401) {
+          setError(errorInfo.message);
+        }
+        console.error("Failed to fetch dashboard stats:", errorInfo);
+        setUsageInfo(null);
+        setIsPremium(false);
+        throw err;
+      } finally {
+        setLoading(false);
+        fetchInProgressRef.current[key] = false;
+      }
+    },
+    [
+      dashboardStats,
+      isFresh,
+      setTimestamp,
+      normalizeDashboardPayload,
+      canAttemptFetch,
+    ]
   );
 
   const logReview = useCallback(
@@ -331,7 +420,9 @@ export const ProgressProvider = ({ children }) => {
   const toggleTracking = useCallback((enabled) => {
     setTrackingEnabled(Boolean(enabled));
     if (import.meta.env?.DEV) {
-      console.log(`[ProgressContext] Tracking ${enabled ? "ENABLED" : "DISABLED"}`);
+      console.log(
+        `[ProgressContext] Tracking ${enabled ? "ENABLED" : "DISABLED"}`
+      );
     }
   }, []);
 
@@ -384,6 +475,8 @@ export const ProgressProvider = ({ children }) => {
     setCacheTimestamp({});
     setUsageInfo(null);
     setIsPremium(false);
+    retryCountRef.current = {};
+    fetchInProgressRef.current = {};
   }, []);
 
   const getCachedProgress = useCallback(
@@ -401,6 +494,24 @@ export const ProgressProvider = ({ children }) => {
     },
     [isFresh]
   );
+
+  const resetRetryCount = useCallback(() => {
+    retryCountRef.current = {};
+  }, []);
+
+  useEffect(() => {
+    const handleAuthReset = () => {
+      if (import.meta.env?.DEV) {
+        console.debug("[ProgressContext] Auth reset, clearing state");
+      }
+      invalidateAllProgress();
+    };
+
+    window.addEventListener("auth:unauthorized", handleAuthReset);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleAuthReset);
+    };
+  }, [invalidateAllProgress]);
 
   const value = useMemo(
     () => ({
@@ -423,6 +534,7 @@ export const ProgressProvider = ({ children }) => {
       getCachedProgress,
       isProgressFresh,
       toggleTracking,
+      resetRetryCount,
     }),
     [
       progressByDeck,
@@ -444,6 +556,7 @@ export const ProgressProvider = ({ children }) => {
       getCachedProgress,
       isProgressFresh,
       toggleTracking,
+      resetRetryCount,
     ]
   );
 
