@@ -38,6 +38,10 @@ export const ProgressProvider = ({ children }) => {
   // Circuit breaker refs
   const retryCountRef = useRef({});
   const fetchInProgressRef = useRef({});
+  const progressByDeckRef = useRef(progressByDeck);
+  const allProgressRef = useRef(allProgress);
+  const dashboardStatsRef = useRef(dashboardStats);
+  const cacheTimestampRef = useRef(cacheTimestamp);
 
   const canAttemptFetch = useCallback((key) => {
     if (!getToken()) {
@@ -66,20 +70,40 @@ export const ProgressProvider = ({ children }) => {
   }, []);
 
   const setTimestamp = useCallback((key) => {
-    setCacheTimestamp((prev) => ({
-      ...prev,
-      [key]: Date.now(),
-    }));
+    setCacheTimestamp((prev) => {
+      const next = {
+        ...prev,
+        [key]: Date.now(),
+      };
+      cacheTimestampRef.current = next;
+      return next;
+    });
   }, []);
 
   const isFresh = useCallback(
     (key) => {
-      const timestamp = cacheTimestamp[key];
+      const timestamp = cacheTimestampRef.current[key];
       if (!timestamp) return false;
       return Date.now() - timestamp < FIVE_MINUTES;
     },
-    [cacheTimestamp]
+    []
   );
+
+  useEffect(() => {
+    progressByDeckRef.current = progressByDeck;
+  }, [progressByDeck]);
+
+  useEffect(() => {
+    allProgressRef.current = allProgress;
+  }, [allProgress]);
+
+  useEffect(() => {
+    dashboardStatsRef.current = dashboardStats;
+  }, [dashboardStats]);
+
+  useEffect(() => {
+    cacheTimestampRef.current = cacheTimestamp;
+  }, [cacheTimestamp]);
 
   const fetchProgressForDeck = useCallback(
     async (deckId, { forceRefresh = false } = {}) => {
@@ -88,14 +112,14 @@ export const ProgressProvider = ({ children }) => {
       const key = String(deckId);
 
       if (!forceRefresh) {
-        const cached = progressByDeck[key];
+        const cached = progressByDeckRef.current[key];
         if (cached && isFresh(key)) {
           return cached;
         }
       }
 
       if (!canAttemptFetch(key)) {
-        return progressByDeck[key] || null;
+        return progressByDeckRef.current[key] || null;
       }
 
       fetchInProgressRef.current[key] = true;
@@ -104,10 +128,14 @@ export const ProgressProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         const data = await progressApi.listByDeck(deckId);
-        setProgressByDeck((prev) => ({
-          ...prev,
-          [key]: data,
-        }));
+        setProgressByDeck((prev) => {
+          const next = {
+            ...prev,
+            [key]: data,
+          };
+          progressByDeckRef.current = next;
+          return next;
+        });
         setTimestamp(key);
 
         // Reset retry count on success
@@ -128,19 +156,19 @@ export const ProgressProvider = ({ children }) => {
         fetchInProgressRef.current[key] = false;
       }
     },
-    [isFresh, progressByDeck, setTimestamp, canAttemptFetch]
+    [isFresh, setTimestamp, canAttemptFetch]
   );
 
   const fetchAllProgress = useCallback(
     async ({ forceRefresh = false } = {}) => {
       const key = "__all__";
 
-      if (!forceRefresh && allProgress && isFresh(key)) {
-        return allProgress;
+      if (!forceRefresh && allProgressRef.current && isFresh(key)) {
+        return allProgressRef.current;
       }
 
       if (!canAttemptFetch(key)) {
-        return allProgress || [];
+        return allProgressRef.current || [];
       }
 
       fetchInProgressRef.current[key] = true;
@@ -149,7 +177,9 @@ export const ProgressProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         const data = await progressApi.list();
-        setAllProgress(Array.isArray(data) ? data : []);
+        const next = Array.isArray(data) ? data : [];
+        setAllProgress(next);
+        allProgressRef.current = next;
         setTimestamp(key);
 
         // Reset retry count on success
@@ -170,7 +200,7 @@ export const ProgressProvider = ({ children }) => {
         fetchInProgressRef.current[key] = false;
       }
     },
-    [allProgress, isFresh, setTimestamp, canAttemptFetch]
+    [isFresh, setTimestamp, canAttemptFetch]
   );
 
   const normalizeDashboardPayload = useCallback((payload) => {
@@ -273,15 +303,16 @@ export const ProgressProvider = ({ children }) => {
     async ({ forceRefresh = false } = {}) => {
       const key = "dashboard";
 
-      if (!forceRefresh && dashboardStats && isFresh(key)) {
+      const cachedStats = dashboardStatsRef.current;
+      if (!forceRefresh && cachedStats && isFresh(key)) {
         if (import.meta.env?.DEV) {
           console.debug("[ProgressContext] Using cached dashboard stats");
         }
-        return dashboardStats;
+        return cachedStats;
       }
 
       if (!canAttemptFetch(key)) {
-        return dashboardStats;
+        return dashboardStatsRef.current;
       }
 
       fetchInProgressRef.current[key] = true;
@@ -319,6 +350,7 @@ export const ProgressProvider = ({ children }) => {
         }
 
         setDashboardStats(normalized);
+        dashboardStatsRef.current = normalized;
         setTimestamp(key);
 
         // Reset retry count on success
@@ -341,13 +373,7 @@ export const ProgressProvider = ({ children }) => {
         fetchInProgressRef.current[key] = false;
       }
     },
-    [
-      dashboardStats,
-      isFresh,
-      setTimestamp,
-      normalizeDashboardPayload,
-      canAttemptFetch,
-    ]
+    [isFresh, setTimestamp, normalizeDashboardPayload, canAttemptFetch]
   );
 
   const logReview = useCallback(
@@ -384,25 +410,33 @@ export const ProgressProvider = ({ children }) => {
         }
 
         if (deckKey) {
-          setProgressByDeck((prev) => ({
-            ...prev,
-            [deckKey]: null,
-          }));
+          setProgressByDeck((prev) => {
+            const next = {
+              ...prev,
+              [deckKey]: null,
+            };
+            progressByDeckRef.current = next;
+            return next;
+          });
           setCacheTimestamp((prev) => {
             const next = { ...prev };
             delete next[deckKey];
+            cacheTimestampRef.current = next;
             return next;
           });
         }
 
         setAllProgress(null);
+        allProgressRef.current = null;
         setCacheTimestamp((prev) => {
           const next = { ...prev };
           delete next.__all__;
           delete next.dashboard;
+          cacheTimestampRef.current = next;
           return next;
         });
         setDashboardStats(null);
+        dashboardStatsRef.current = null;
 
         return response;
       } catch (err) {
@@ -433,9 +467,11 @@ export const ProgressProvider = ({ children }) => {
       const response = await dashboardApi.updateUserStats(payload);
 
       setDashboardStats(null);
+      dashboardStatsRef.current = null;
       setCacheTimestamp((prev) => {
         const next = { ...prev };
         delete next.dashboard;
+        cacheTimestampRef.current = next;
         return next;
       });
 
@@ -459,20 +495,26 @@ export const ProgressProvider = ({ children }) => {
       }
       const next = { ...prev };
       delete next[deckKey];
+      progressByDeckRef.current = next;
       return next;
     });
     setCacheTimestamp((prev) => {
       const next = { ...prev };
       delete next[deckKey];
+      cacheTimestampRef.current = next;
       return next;
     });
   }, []);
 
   const invalidateAllProgress = useCallback(() => {
     setProgressByDeck({});
+    progressByDeckRef.current = {};
     setAllProgress(null);
+    allProgressRef.current = null;
     setDashboardStats(null);
+    dashboardStatsRef.current = null;
     setCacheTimestamp({});
+    cacheTimestampRef.current = {};
     setUsageInfo(null);
     setIsPremium(false);
     retryCountRef.current = {};
@@ -482,9 +524,9 @@ export const ProgressProvider = ({ children }) => {
   const getCachedProgress = useCallback(
     (deckId) => {
       if (!deckId) return null;
-      return progressByDeck[String(deckId)] ?? null;
+      return progressByDeckRef.current[String(deckId)] ?? null;
     },
-    [progressByDeck]
+    []
   );
 
   const isProgressFresh = useCallback(

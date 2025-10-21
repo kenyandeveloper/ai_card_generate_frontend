@@ -60,7 +60,7 @@ export const useDecks = (options = {}) => {
         }
       });
     }
-  }, [skip, enabled]); // Minimal dependencies - only re-run when these change
+  }, [skip, enabled, loading, fetchDecks, isCacheFresh, ttl]);
 
   // Reset fetch tracking when authentication changes
   useEffect(() => {

@@ -36,7 +36,7 @@ export const useProgress = (deckId = null, skipFetch = false) => {
         }
       });
     }
-  }, [deckId, skipFetch]); // Minimal dependencies
+  }, [deckId, skipFetch, fetchProgressForDeck, isProgressFresh]);
 
   const deckProgress = useMemo(
     () => (deckId ? getCachedProgress(deckId) : null),
@@ -90,7 +90,7 @@ export const useDashboardStats = (skipFetch = false) => {
         }
       });
     }
-  }, [skipFetch, dashboardStats]); // Minimal dependencies
+  }, [skipFetch, dashboardStats, fetchDashboardStats]);
 
   // Reset fetch tracking on auth changes
   useEffect(() => {

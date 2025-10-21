@@ -97,7 +97,7 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, hasAuth]); // Removed fetchAllProgress from deps to prevent loops
+  }, [user, hasAuth, fetchAllProgress]);
 
   const progress = useMemo(
     () => (Array.isArray(allProgress) ? allProgress : []),

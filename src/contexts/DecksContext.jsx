@@ -16,7 +16,6 @@ const DecksContext = createContext(null);
 const DEFAULT_PARAMS = { page: 1, per_page: 1000 };
 const FIVE_MINUTES = 5 * 60 * 1000;
 const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY = 2000; // 2 seconds
 
 const normalizeDeckResponse = (data) => {
   if (!data) {
@@ -50,6 +49,8 @@ export const DecksProvider = ({ children }) => {
   const retryCountRef = useRef(0);
   const lastErrorTimeRef = useRef(0);
   const fetchInProgressRef = useRef(false);
+  const decksRef = useRef(decks);
+  const paginationRef = useRef(pagination);
 
   const isCacheFresh = useCallback(
     (ttl = FIVE_MINUTES) => {
@@ -58,6 +59,14 @@ export const DecksProvider = ({ children }) => {
     },
     [cacheTimestamp]
   );
+
+  useEffect(() => {
+    decksRef.current = decks;
+  }, [decks]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
 
   // Check if we should allow a fetch attempt
   const canAttemptFetch = useCallback(() => {
@@ -101,7 +110,8 @@ export const DecksProvider = ({ children }) => {
       const mergedParams = { ...DEFAULT_PARAMS, ...params };
 
       // Use refs for cache check instead of state to avoid dependency issues
-      const decksSnapshot = decks;
+      const decksSnapshot = decksRef.current;
+      const paginationSnapshot = paginationRef.current;
       const shouldUseCache =
         !force &&
         isCacheFresh() &&
@@ -113,13 +123,13 @@ export const DecksProvider = ({ children }) => {
         if (import.meta.env?.DEV) {
           console.debug("[DecksContext] Using cached decks");
         }
-        return { decks: decksSnapshot, pagination };
+        return { decks: decksSnapshot, pagination: paginationSnapshot };
       }
 
       // Check if we can attempt fetch
       if (!canAttemptFetch()) {
         // Return empty result without throwing to prevent error cascades
-        return { decks: decksSnapshot, pagination };
+        return { decks: decksSnapshot, pagination: paginationSnapshot };
       }
 
       fetchInProgressRef.current = true;
@@ -132,7 +142,9 @@ export const DecksProvider = ({ children }) => {
           normalizeDeckResponse(response);
 
         setDecks(fetchedDecks);
+        decksRef.current = fetchedDecks;
         setPagination(fetchedPagination);
+        paginationRef.current = fetchedPagination;
         setCacheTimestamp(Date.now());
         setLastParams(mergedParams);
 
@@ -166,20 +178,22 @@ export const DecksProvider = ({ children }) => {
       }
     },
     // Remove decks from dependencies to prevent recreation on every state change
-    [isCacheFresh, lastParams, pagination, canAttemptFetch]
+    [isCacheFresh, lastParams, canAttemptFetch]
   );
 
   const fetchDeckById = useCallback(
     async (deckId, { force = false } = {}) => {
       if (!canAttemptFetch()) {
-        const cached = decks.find((deck) => deck.id === Number(deckId));
+        const cached = decksRef.current.find(
+          (deck) => deck.id === Number(deckId)
+        );
         if (cached) return cached;
         throw new Error("Authentication required");
       }
 
       const numericId = Number(deckId);
       if (!force) {
-        const cached = decks.find((deck) => deck.id === numericId);
+        const cached = decksRef.current.find((deck) => deck.id === numericId);
         if (cached) return cached;
       }
 
@@ -189,9 +203,11 @@ export const DecksProvider = ({ children }) => {
         const deck = await deckApi.get(numericId);
         setDecks((prev) => {
           const exists = prev.some((d) => d.id === numericId);
-          return exists
+          const next = exists
             ? prev.map((d) => (d.id === numericId ? deck : d))
             : [...prev, deck];
+          decksRef.current = next;
+          return next;
         });
         return deck;
       } catch (err) {
@@ -204,7 +220,7 @@ export const DecksProvider = ({ children }) => {
         setLoading(false);
       }
     },
-    [decks, canAttemptFetch]
+    [canAttemptFetch]
   );
 
   const createDeck = useCallback(
@@ -294,6 +310,8 @@ export const DecksProvider = ({ children }) => {
       }
       setDecks([]);
       setPagination(null);
+      decksRef.current = [];
+      paginationRef.current = null;
       setCacheTimestamp(0);
       setError(null);
       retryCountRef.current = 0;
