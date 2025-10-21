@@ -1,29 +1,36 @@
 // src/components/Dashboard/DeckCard.jsx
 import { motion } from "framer-motion";
-import { PlayCircle, Clock, TrendingUp, BookOpen } from "lucide-react";
+import { PlayCircle, Clock, TrendingUp, BookOpen, Lock } from "lucide-react";
 import { getRelativeTime } from "../../utils/dashBoardutil";
 
 const getMasteryColor = (mastery) => {
   if (mastery >= 80) {
     return {
-      text: "text-green-400",
-      gradient: "from-green-400 to-green-600",
+      text: "text-success",
+      gradient: "from-success to-success",
     };
   }
   if (mastery >= 60) {
     return {
-      text: "text-yellow-400",
-      gradient: "from-yellow-400 to-yellow-600",
+      text: "text-warning",
+      gradient: "from-warning to-warning",
     };
   }
   return {
-    text: "text-red-400",
-    gradient: "from-red-400 to-red-600",
+    text: "text-danger",
+    gradient: "from-danger to-danger",
   };
 };
 
-const DeckCard = ({ deck, deckStats, navigate }) => {
-  const colors = getMasteryColor(deckStats.mastery);
+const DeckCard = ({ deck, deckStats, navigate, isPremium = false }) => {
+  const deckId = deck?.id ?? deck?.deck_id;
+  const masteryValue = Number.isFinite(deckStats?.mastery)
+    ? deckStats.mastery
+    : 0;
+  const colors = getMasteryColor(masteryValue);
+  const lastStudiedLabel = deckStats?.lastStudied
+    ? getRelativeTime(deckStats.lastStudied)
+    : "—";
 
   return (
     <motion.div
@@ -32,15 +39,15 @@ const DeckCard = ({ deck, deckStats, navigate }) => {
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="group"
     >
-      <div className="bg-slate-800 rounded-2xl shadow-lg border border-slate-700 overflow-hidden hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+      <div className="bg-surface-elevated rounded-2xl shadow-lg border border-border-muted overflow-hidden hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-700">
+        <div className="p-6 border-b border-border-muted bg-gradient-to-r from-surface-elevated to-surface-highlight">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <BookOpen className="w-5 h-5 text-white" />
+            <div className="p-2 bg-gradient-to-r from-primary to-secondary rounded-xl group-hover:scale-110 transition-transform duration-300">
+              <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors duration-300">
+              <h3 className="text-lg font-bold text-text-primary truncate group-hover:text-primary transition-colors duration-300">
                 {deck.title}
               </h3>
             </div>
@@ -49,55 +56,69 @@ const DeckCard = ({ deck, deckStats, navigate }) => {
 
         {/* Content */}
         <div className="p-6 flex-1 flex flex-col">
-          <p className="text-slate-400 text-sm leading-relaxed mb-4 line-clamp-2 flex-1">
+          <p className="text-text-muted text-sm leading-relaxed mb-4 line-clamp-2 flex-1">
             {deck.description || "No description available."}
           </p>
 
           {/* Stats */}
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-text-muted">
                 <Clock className="w-4 h-4" />
                 <span>Last studied</span>
               </div>
-              <span className="font-medium text-slate-300">
-                {getRelativeTime(deckStats.lastStudied)}
+              <span className="font-medium text-text-secondary">
+                {lastStudiedLabel}
               </span>
             </div>
 
             {/* Mastery Progress */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm text-slate-400">Mastery</span>
+            {isPremium ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-text-muted" />
+                    <span className="text-sm text-text-muted">Mastery</span>
+                  </div>
+                  <span className={`text-sm font-bold ${colors.text}`}>
+                    {masteryValue}%
+                  </span>
                 </div>
-                <span className={`text-sm font-bold ${colors.text}`}>
-                  {deckStats.mastery}%
-                </span>
-              </div>
 
-              <div className="relative">
-                <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${deckStats.mastery}%` }}
-                    transition={{ duration: 1, delay: 0.3 }}
-                    className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full relative`}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                  </motion.div>
+                <div className="relative">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-highlight">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${masteryValue}%` }}
+                      transition={{ duration: 1, delay: 0.3 }}
+                      className={`relative h-full rounded-full bg-gradient-to-r ${colors.gradient}`}
+                    >
+                      <div className="absolute inset-0 bg-primary-soft animate-pulse" />
+                    </motion.div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-lg border border-border-muted bg-surface-highlight/40 px-3 py-2 text-sm text-text-muted">
+                <Lock className="h-4 w-4 text-text-secondary" />
+                <span>Upgrade to see mastery progress for this deck.</span>
+              </div>
+            )}
           </div>
 
           {/* Action Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(`/study/${deck.id}`)}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+            onClick={() => {
+              if (!deckId) {
+                console.error("Attempted to navigate to deck without id", deck);
+                return;
+              }
+              console.debug("Navigating to study deck", deckId);
+              navigate(`/study/${deckId}`);
+            }}
+            className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary-emphasis hover:to-secondary-emphasis text-primary-foreground font-semibold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
           >
             <PlayCircle className="w-5 h-5" />
             Start Studying

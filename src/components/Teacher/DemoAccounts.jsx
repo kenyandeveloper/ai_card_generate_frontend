@@ -6,8 +6,8 @@ import {
   createDemoAccounts,
   extendDemoAccount,
   disableDemoAccount,
+  redeemTeacherCode,
 } from "../../utils/teacherApi";
-import { redeemTeacherCode } from "../../utils/teacherAuth";
 import { useUser } from "../context/UserContext";
 import TeacherInviteDialog from "./TeacherInviteDialog";
 import { createTeacherInvite } from "../../utils/adminApi";
@@ -21,7 +21,7 @@ function daysLeft(expiresAt) {
 function StatusBadge({ days, disabled }) {
   if (disabled) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-700 text-slate-400">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-surface-highlight text-text-muted">
         Disabled
       </span>
     );
@@ -29,7 +29,7 @@ function StatusBadge({ days, disabled }) {
 
   if (days == null) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-700 text-slate-400">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-surface-highlight text-text-muted">
         —
       </span>
     );
@@ -37,7 +37,7 @@ function StatusBadge({ days, disabled }) {
 
   if (days < 1) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-red-900/50 text-red-300 border border-red-700">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-danger-soft/50 text-danger border border-danger">
         {days}d
       </span>
     );
@@ -45,14 +45,14 @@ function StatusBadge({ days, disabled }) {
 
   if (days < 14) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900/50 text-yellow-300 border border-yellow-700">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-warning-soft text-warning border border-warning">
         {days}d
       </span>
     );
   }
 
   return (
-    <span className="px-2 py-1 rounded text-xs font-medium bg-green-900/50 text-green-300 border border-green-700">
+    <span className="px-2 py-1 rounded text-xs font-medium bg-success-soft text-success border border-success">
       {days}d
     </span>
   );
@@ -94,7 +94,7 @@ function SimplePagination({ currentPage, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2 rounded hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2 rounded hover:bg-surface-highlight disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
@@ -110,8 +110,8 @@ function SimplePagination({ currentPage, totalPages, onPageChange }) {
             onClick={() => onPageChange(page)}
             className={`px-3 py-1 rounded font-medium ${
               page === currentPage
-                ? "bg-blue-600 text-white"
-                : "hover:bg-slate-700"
+                ? "bg-primary text-text-primary"
+                : "hover:bg-surface-highlight"
             }`}
           >
             {page}
@@ -122,7 +122,7 @@ function SimplePagination({ currentPage, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2 rounded hover:bg-surface-highlight disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
@@ -182,7 +182,7 @@ export default function DemoAccounts() {
         await redeemTeacherCode(code);
         await refreshUser();
         await load();
-      } catch (e) {
+      } catch {
         setGated(true);
       }
     })();
@@ -229,12 +229,12 @@ export default function DemoAccounts() {
     <div className="space-y-6">
       {/* Gated Access UI */}
       {gated && (
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-semibold">Teacher Portal</h1>
           </div>
 
-          <p className="text-slate-300 mb-4">
+          <p className="text-text-secondary mb-4">
             You need teacher access to view this page.
           </p>
 
@@ -244,14 +244,14 @@ export default function DemoAccounts() {
               <button
                 onClick={selfPromote}
                 disabled={loading}
-                className="px-4 py-2 rounded border border-slate-600 hover:bg-slate-700 disabled:opacity-50"
+                className="px-4 py-2 rounded border border-border-muted hover:bg-surface-highlight disabled:opacity-50"
               >
                 {loading ? "Granting…" : "Grant myself teacher access (dev)"}
               </button>
             )}
           </div>
 
-          {err && <p className="text-red-400 mt-4">{String(err)}</p>}
+          {err && <p className="text-danger mt-4">{String(err)}</p>}
         </div>
       )}
 
@@ -268,7 +268,7 @@ export default function DemoAccounts() {
               setPage(1);
               setQ(e.target.value);
             }}
-            className="px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 bg-surface-elevated border border-border-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
           <select
@@ -277,7 +277,7 @@ export default function DemoAccounts() {
               setPage(1);
               setPerPage(Number(e.target.value));
             }}
-            className="px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-28"
+            className="px-3 py-2 bg-surface-elevated border border-border-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary w-28"
           >
             {[10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
@@ -289,7 +289,7 @@ export default function DemoAccounts() {
           <button
             onClick={quickCreate}
             disabled={loading || gated}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium disabled:opacity-50"
+            className="px-4 py-2 bg-primary hover:bg-primary-emphasis rounded font-medium disabled:opacity-50"
           >
             Create 5
           </button>
@@ -297,7 +297,7 @@ export default function DemoAccounts() {
           <button
             onClick={load}
             disabled={loading}
-            className="px-4 py-2 border border-slate-600 hover:bg-slate-700 rounded font-medium disabled:opacity-50"
+            className="px-4 py-2 border border-border-muted hover:bg-surface-highlight rounded font-medium disabled:opacity-50"
           >
             {loading ? "…" : "Refresh"}
           </button>
@@ -305,13 +305,13 @@ export default function DemoAccounts() {
       </div>
 
       {/* Error Display */}
-      {!gated && err && <p className="text-red-400">{err}</p>}
+      {!gated && err && <p className="text-danger">{err}</p>}
 
       {/* Data Table */}
-      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+      <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-700">
+            <tr className="border-b border-border-muted">
               <th className="text-left py-3 px-4 font-semibold">Username</th>
               <th className="text-left py-3 px-4 font-semibold">Email</th>
               <th className="text-left py-3 px-4 font-semibold">Expiry</th>
@@ -328,10 +328,10 @@ export default function DemoAccounts() {
                 return (
                   <tr
                     key={u.id}
-                    className="border-b border-slate-700 hover:bg-slate-750"
+                  className="border-b border-border-muted hover:bg-surface-highlight"
                   >
                     <td className="py-3 px-4">{u.username}</td>
-                    <td className="py-3 px-4 text-slate-400">{u.email}</td>
+                    <td className="py-3 px-4 text-text-muted">{u.email}</td>
                     <td className="py-3 px-4">
                       <StatusBadge days={d} disabled={disabled} />
                     </td>
@@ -345,7 +345,7 @@ export default function DemoAccounts() {
                             await extendDemoAccount(u.id, 30);
                             load();
                           }}
-                          className="px-3 py-1 text-xs rounded border border-slate-600 hover:bg-slate-700"
+                          className="px-3 py-1 text-xs rounded border border-border-muted hover:bg-surface-highlight"
                         >
                           +30d
                         </button>
@@ -354,7 +354,7 @@ export default function DemoAccounts() {
                             await disableDemoAccount(u.id);
                             load();
                           }}
-                          className="px-3 py-1 text-xs rounded border border-slate-600 hover:bg-slate-700"
+                          className="px-3 py-1 text-xs rounded border border-border-muted hover:bg-surface-highlight"
                         >
                           {disabled ? "Enable" : "Disable"}
                         </button>
@@ -366,7 +366,7 @@ export default function DemoAccounts() {
 
             {!gated && !data.items?.length && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
+                <td colSpan={5} className="py-8 text-center text-text-muted">
                   No demo accounts
                 </td>
               </tr>

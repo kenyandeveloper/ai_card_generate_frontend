@@ -1,90 +1,66 @@
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Button,
-  Grid,
-} from "@mui/material";
 import { Trophy, Brain, Target, Clock } from "lucide-react";
 import StatsCard from "./StatsCard";
 
 const StudySummary = ({ showSummary, sessionStats, handleExitStudy }) => {
+  if (!showSummary) return null;
+
   return (
-    <Dialog open={showSummary} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Box sx={{ textAlign: "center" }}>
-          <Trophy size={48} style={{ color: "#4CAF50", marginBottom: 16 }} />
-          {/* Use div instead of Typography to avoid heading nesting */}
-          <div
-            style={{
-              fontSize: "2.125rem",
-              fontWeight: "bold",
-              marginBottom: "8px",
-              color: (theme) => theme.palette.text.primary,
-            }}
-          >
+    <div className="fixed inset-0 bg-background-overlay flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-elevated border border-border-muted rounded-2xl max-w-md w-full shadow-xl">
+        {/* Header */}
+        <div className="p-6 text-center border-b border-border-muted">
+          <Trophy className="w-12 h-12 text-success mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-text-primary mb-2">
             Study Session Complete!
+          </h2>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <StatsCard
+              icon={Brain}
+              value={sessionStats.correctAnswers}
+              total={sessionStats.totalCards}
+              label="Correct Answers"
+              color="#10b981" // success color
+            />
+            <StatsCard
+              icon={Target}
+              value={Math.round(
+                (sessionStats.correctAnswers / sessionStats.totalCards) * 100
+              )}
+              unit="%"
+              label="Accuracy"
+              color="#3b82f6" // primary color
+            />
+            <StatsCard
+              icon={Clock}
+              value={Math.round(sessionStats.timeSpent)}
+              unit="min"
+              label="Time Spent"
+              color="#06b6d4" // info color
+            />
+            <StatsCard
+              icon={Trophy}
+              value={sessionStats.cardsLearned}
+              label="Cards Mastered"
+              color="#f59e0b" // warning color
+            />
           </div>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ py: 2 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={6}>
-              <StatsCard
-                icon={Brain}
-                value={sessionStats.correctAnswers}
-                total={sessionStats.totalCards}
-                label="Correct Answers"
-                color="success.main"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatsCard
-                icon={Target}
-                value={Math.round(
-                  (sessionStats.correctAnswers / sessionStats.totalCards) * 100
-                )}
-                unit="%"
-                label="Accuracy"
-                color="primary.main"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatsCard
-                icon={Clock}
-                value={Math.round(sessionStats.timeSpent)}
-                unit="min"
-                label="Time Spent"
-                color="info.main"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <StatsCard
-                icon={Trophy}
-                value={sessionStats.cardsLearned}
-                label="Cards Mastered"
-                color="warning.main"
-              />
-            </Grid>
-          </Grid>
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ p: 3, justifyContent: "center" }}>
-        <Button
-          variant="contained"
-          onClick={handleExitStudy}
-          sx={{
-            minWidth: 200,
-            py: 1.5,
-          }}
-        >
-          Back to Study
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </div>
+
+        {/* Actions */}
+        <div className="p-6 border-t border-border-muted flex justify-center">
+          <button
+            onClick={handleExitStudy}
+            className="bg-primary hover:bg-primary-emphasis text-text-primary px-8 py-3 rounded-lg font-medium transition-colors min-w-[200px]"
+          >
+            Back to Study
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

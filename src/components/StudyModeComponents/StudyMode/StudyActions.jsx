@@ -1,13 +1,11 @@
-import { Box, Button, IconButton, Tooltip } from "@mui/material";
 import {
   ArrowLeft,
   Rotate3D,
   ThumbsUp,
   ThumbsDown,
-  Trophy,
   CheckCircle,
 } from "lucide-react";
-import React from "react";
+import { InlineSpinner } from "../../common/LoadingSpinner";
 
 const StudyActions = ({
   showAnswer,
@@ -15,167 +13,139 @@ const StudyActions = ({
   currentFlashcardIndex,
   flashcardsLength,
   setCurrentFlashcardIndex,
-  startTimeRef,
-  handleFlashcardResponse,
-  cardProgress,
+  onAnswer,
   handleFinishSession,
   isCurrentCardAnswered,
+  submittingReview,
 }) => {
-  const allCardsAnswered = flashcardsLength > 0 && isCurrentCardAnswered && 
+  const allCardsAnswered =
+    flashcardsLength > 0 &&
+    isCurrentCardAnswered &&
     currentFlashcardIndex === flashcardsLength - 1;
 
   const handleResponse = (wasCorrect) => {
-    handleFlashcardResponse(wasCorrect);
+    if (submittingReview) return;
+    onAnswer(wasCorrect);
+  };
+
+  const handlePrevious = () => {
+    if (currentFlashcardIndex > 0) {
+      setCurrentFlashcardIndex(currentFlashcardIndex - 1);
+      setShowAnswer(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentFlashcardIndex < flashcardsLength - 1) {
+      setCurrentFlashcardIndex(currentFlashcardIndex + 1);
+      setShowAnswer(false);
+    }
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          gap: 2,
-          mb: allCardsAnswered ? 2 : 0,
-        }}
+    <div className="mt-8">
+      {/* Main Action Buttons */}
+      <div
+        className={`flex justify-center gap-4 ${
+          allCardsAnswered ? "mb-4" : ""
+        }`}
       >
         {!showAnswer ? (
-          <Button
-            variant="contained"
-            size="large"
+          <button
             onClick={() => setShowAnswer(true)}
-            startIcon={<Rotate3D size={20} />}
-            sx={{
-              minWidth: 200,
-              py: 1.5,
-            }}
+            className="bg-primary hover:bg-primary-emphasis text-text-primary px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 min-w-[200px] justify-center"
           >
+            <Rotate3D className="w-5 h-5" />
             Show Answer
-          </Button>
+          </button>
         ) : (
           <>
             {!isCurrentCardAnswered ? (
-              <>
-                <Tooltip title="Press Left Arrow or 0">
-                  <Button
-                    variant="contained"
-                    size="large"
-                    color="error"
-                    onClick={() => handleResponse(false)}
-                    startIcon={<ThumbsDown size={20} />}
-                    sx={{
-                      minWidth: 160,
-                      py: 1.5,
-                    }}
-                  >
-                    Incorrect
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Press Right Arrow or 1">
-                  <Button
-                    variant="contained"
-                    size="large"
-                    color="success"
-                    onClick={() => handleResponse(true)}
-                    startIcon={<ThumbsUp size={20} />}
-                    sx={{
-                      minWidth: 160,
-                      py: 1.5,
-                    }}
-                  >
-                    Correct
-                  </Button>
-                </Tooltip>
-              </>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleResponse(false)}
+                  disabled={submittingReview}
+                  className="bg-danger hover:bg-danger-emphasis text-text-primary px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 min-w-[160px] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Press Left Arrow or 0"
+                >
+                  {submittingReview ? (
+                    <>
+                      <InlineSpinner size={18} />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <ThumbsDown className="w-5 h-5" />
+                      Incorrect
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleResponse(true)}
+                  disabled={submittingReview}
+                  className="bg-success hover:bg-success-emphasis text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 min-w-[160px] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Press Right Arrow or 1"
+                >
+                  {submittingReview ? (
+                    <>
+                      <InlineSpinner size={18} />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <ThumbsUp className="w-5 h-5" />
+                      Correct
+                    </>
+                  )}
+                </button>
+              </div>
             ) : (
-              <Button
-                variant="contained"
-                size="large"
+              <button
                 onClick={() => setShowAnswer(false)}
-                startIcon={<Rotate3D size={20} />}
-                sx={{
-                  minWidth: 200,
-                  py: 1.5,
-                }}
+                className="bg-primary hover:bg-primary-emphasis text-text-primary px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 min-w-[200px] justify-center"
               >
+                <Rotate3D className="w-5 h-5" />
                 Show Question
-              </Button>
+              </button>
             )}
           </>
         )}
-      </Box>
+      </div>
 
+      {/* Finish Session Button */}
       {allCardsAnswered && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
+        <div className="flex justify-center mt-4">
+          <button
             onClick={handleFinishSession}
-            startIcon={<CheckCircle size={20} />}
-            sx={{
-              minWidth: 200,
-              py: 1.5,
-            }}
+            className="bg-primary hover:bg-primary-emphasis text-primary-foreground px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 min-w-[200px] justify-center"
           >
+            <CheckCircle className="w-5 h-5" />
             Finish Study Session
-          </Button>
-        </Box>
+          </button>
+        </div>
       )}
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          mt: 4,
-        }}
-      >
-        <Tooltip title="Previous Card (Left Arrow)">
-          <span>
-            <IconButton
-              onClick={() => {
-                if (currentFlashcardIndex > 0) {
-                  setCurrentFlashcardIndex(currentFlashcardIndex - 1);
-                  setShowAnswer(false);
-                  startTimeRef.current = Date.now();
-                }
-              }}
-              disabled={currentFlashcardIndex === 0}
-              sx={{
-                bgcolor: "background.paper",
-                boxShadow: 1,
-                "&:hover": { bgcolor: "action.hover" },
-                "&.Mui-disabled": { opacity: 0.5 },
-              }}
-            >
-              <ArrowLeft size={24} />
-            </IconButton>
-          </span>
-        </Tooltip>
+      {/* Navigation Buttons */}
+      <div className="flex justify-between w-full mt-8">
+        <button
+          onClick={handlePrevious}
+          disabled={currentFlashcardIndex === 0}
+          className="bg-surface-elevated hover:bg-surface-highlight text-text-primary p-3 rounded-lg shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Previous Card (Left Arrow)"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
 
-        <Tooltip title="Next Card (Right Arrow)">
-          <span>
-            <IconButton
-              onClick={() => {
-                if (currentFlashcardIndex < flashcardsLength - 1) {
-                  setCurrentFlashcardIndex(currentFlashcardIndex + 1);
-                  setShowAnswer(false);
-                  startTimeRef.current = Date.now();
-                }
-              }}
-              disabled={currentFlashcardIndex === flashcardsLength - 1}
-              sx={{
-                bgcolor: "background.paper",
-                boxShadow: 1,
-                "&:hover": { bgcolor: "action.hover" },
-                "&.Mui-disabled": { opacity: 0.5 },
-              }}
-            >
-              <ArrowLeft size={24} style={{ transform: "rotate(180deg)" }} />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
-    </Box>
+        <button
+          onClick={handleNext}
+          disabled={currentFlashcardIndex === flashcardsLength - 1}
+          className="bg-surface-elevated hover:bg-surface-highlight text-text-primary p-3 rounded-lg shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Next Card (Right Arrow)"
+        >
+          <ArrowLeft className="w-6 h-6 rotate-180" />
+        </button>
+      </div>
+    </div>
   );
 };
 

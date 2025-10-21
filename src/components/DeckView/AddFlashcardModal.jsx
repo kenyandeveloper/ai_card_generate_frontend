@@ -1,14 +1,7 @@
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  Modal,
-} from "@mui/material";
-import { useState } from "react";
+// src/components/AddFlashcardModal.jsx
+import { useEffect, useRef, useState } from "react";
 
-const AddFlashcardModal = ({
+export default function AddFlashcardModal({
   open,
   onClose,
   newFlashcard,
@@ -16,22 +9,22 @@ const AddFlashcardModal = ({
   onSave,
   error,
   setError,
-}) => {
+}) {
   const [touched, setTouched] = useState({
     front_text: false,
     back_text: false,
   });
+  const questionRef = useRef(null);
 
-  // Validate the form
   const validateForm = () => {
     const errors = {};
-    if (!newFlashcard.front_text.trim())
+    if (!newFlashcard.front_text?.trim())
       errors.front_text = "Question is required";
-    if (!newFlashcard.back_text.trim()) errors.back_text = "Answer is required";
+    if (!newFlashcard.back_text?.trim())
+      errors.back_text = "Answer is required";
     return errors;
   };
 
-  // Handle form submission
   const handleSave = () => {
     const errors = validateForm();
     if (Object.keys(errors).length === 0) {
@@ -39,120 +32,152 @@ const AddFlashcardModal = ({
       onSave();
     } else {
       setError("Please fill in all required fields.");
-      // Mark all fields as touched to show errors
-      setTouched({
-        front_text: true,
-        back_text: true,
-      });
+      setTouched({ front_text: true, back_text: true });
     }
   };
 
-  // Handle field blur (when user leaves a field)
-  const handleBlur = (field) => () => {
+  const handleBlur = (field) => () =>
     setTouched((prev) => ({ ...prev, [field]: true }));
+
+  // Focus first field when modal opens
+  useEffect(() => {
+    if (open) {
+      const id = requestAnimationFrame(() => questionRef.current?.focus());
+      return () => cancelAnimationFrame(id);
+    }
+  }, [open]);
+
+  const onKeyDown = (e) => {
+    if (e.key === "Escape") onClose?.();
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
   };
 
+  const qInvalid = touched.front_text && !newFlashcard.front_text?.trim();
+  const aInvalid = touched.back_text && !newFlashcard.back_text?.trim();
+
+  if (!open) return null;
+
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby="add-flashcard-title">
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: { xs: "90%", sm: 500 },
-          bgcolor: "background.paper",
-          borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-          p: 4,
-        }}
-      >
-        <Typography
-          variant="h5"
-          id="add-flashcard-title"
-          sx={{ mb: 3, fontWeight: "bold" }}
-        >
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-flashcard-title"
+      onKeyDown={onKeyDown}
+    >
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative z-10 w-[90%] max-w-lg rounded-2xl border border-border-strong bg-background-subtle p-6 shadow-2xl">
+        <h2 id="add-flashcard-title" className="text-xl font-bold mb-4">
           Add New Flashcard
-        </Typography>
+        </h2>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
+        {/* Alert */}
+        {error ? (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-danger text-sm"
+          >
             {error}
-          </Alert>
-        )}
+          </div>
+        ) : null}
 
-        <TextField
-          label="Question"
-          value={newFlashcard.front_text}
-          onChange={(e) =>
-            setNewFlashcard({ ...newFlashcard, front_text: e.target.value })
-          }
-          onBlur={handleBlur("front_text")}
-          fullWidth
-          required
-          error={touched.front_text && !newFlashcard.front_text.trim()}
-          helperText={
-            touched.front_text &&
-            !newFlashcard.front_text.trim() &&
-            "Question is required"
-          }
-          sx={{ mb: 3 }}
-        />
+        {/* Question */}
+        <div className="mb-4">
+          <label
+            htmlFor="fc-question"
+            className="block text-sm font-medium text-text-primary mb-1"
+          >
+            Question <span className="text-danger">*</span>
+          </label>
+          <input
+            id="fc-question"
+            ref={questionRef}
+            type="text"
+            value={newFlashcard.front_text}
+            onChange={(e) =>
+              setNewFlashcard({ ...newFlashcard, front_text: e.target.value })
+            }
+            onBlur={handleBlur("front_text")}
+            aria-invalid={qInvalid ? "true" : "false"}
+            aria-describedby={qInvalid ? "fc-question-err" : undefined}
+            className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted
+              ${
+                qInvalid
+                  ? "border-danger/60"
+                  : "border-border-muted focus:border-border-muted"
+              }`}
+            placeholder="e.g., What is a binary search?"
+          />
+          {qInvalid && (
+            <p id="fc-question-err" className="mt-1 text-xs text-danger">
+              Question is required
+            </p>
+          )}
+        </div>
 
-        <TextField
-          label="Answer"
-          value={newFlashcard.back_text}
-          onChange={(e) =>
-            setNewFlashcard({ ...newFlashcard, back_text: e.target.value })
-          }
-          onBlur={handleBlur("back_text")}
-          fullWidth
-          required
-          error={touched.back_text && !newFlashcard.back_text.trim()}
-          helperText={
-            touched.back_text &&
-            !newFlashcard.back_text.trim() &&
-            "Answer is required"
-          }
-          multiline
-          rows={3}
-          sx={{ mb: 3 }}
-        />
+        {/* Answer */}
+        <div className="mb-5">
+          <label
+            htmlFor="fc-answer"
+            className="block text-sm font-medium text-text-primary mb-1"
+          >
+            Answer <span className="text-danger">*</span>
+          </label>
+          <textarea
+            id="fc-answer"
+            rows={3}
+            value={newFlashcard.back_text}
+            onChange={(e) =>
+              setNewFlashcard({ ...newFlashcard, back_text: e.target.value })
+            }
+            onBlur={handleBlur("back_text")}
+            aria-invalid={aInvalid ? "true" : "false"}
+            aria-describedby={aInvalid ? "fc-answer-err" : undefined}
+            className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted resize-y
+              ${
+                aInvalid
+                  ? "border-danger/60"
+                  : "border-border-muted focus:border-border-muted"
+              }`}
+            placeholder="Type the correct answer here"
+          />
+          {aInvalid && (
+            <p id="fc-answer-err" className="mt-1 text-xs text-danger">
+              Answer is required
+            </p>
+          )}
+        </div>
 
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button
-            variant="contained"
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            type="button"
             onClick={handleSave}
-            sx={{
-              flex: 1,
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-            }}
+            className="flex-1 rounded-lg bg-primary hover:bg-primary px-4 py-2 font-medium"
           >
             Add Flashcard
-          </Button>
-          <Button
-            variant="outlined"
+          </button>
+          <button
+            type="button"
             onClick={onClose}
-            sx={{
-              flex: 1,
-              borderColor: "primary.main",
-              color: "primary.main",
-              "&:hover": {
-                borderColor: "primary.dark",
-                bgcolor: "rgba(124, 58, 237, 0.04)",
-              },
-            }}
+            className="flex-1 rounded-lg border border-border-muted hover:border-border-muted px-4 py-2"
           >
             Cancel
-          </Button>
-        </Box>
-      </Box>
-    </Modal>
-  );
-};
+          </button>
+        </div>
 
-export default AddFlashcardModal;
+        {/* Helper text */}
+        <p className="mt-3 text-xs text-text-muted">
+          Tip: Press{" "}
+          <kbd className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-muted">
+            Ctrl/⌘ + Enter
+          </kbd>{" "}
+          to save.
+        </p>
+      </div>
+    </div>
+  );
+}

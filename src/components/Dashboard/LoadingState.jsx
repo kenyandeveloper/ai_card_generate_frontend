@@ -5,12 +5,12 @@ import { Brain, Sparkles } from "lucide-react";
 
 const LoadingState = () => {
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen relative bg-gradient-to-br from-background via-background-subtle to-background flex items-center justify-center">
       <div className="text-center">
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-soft to-secondary-soft rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-secondary-soft to-accent-soft rounded-full blur-3xl animate-pulse" />
         </div>
 
         {/* Main Loading Content */}
@@ -38,8 +38,8 @@ const LoadingState = () => {
                 },
               }}
             >
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                <Brain className="w-10 h-10 text-white" />
+              <div className="w-20 h-20 bg-gradient-to-r from-primary to-secondary rounded-2xl flex items-center justify-center shadow-2xl">
+                <Brain className="w-10 h-10 text-text-primary" />
               </div>
 
               {/* Floating Sparkles */}
@@ -52,7 +52,7 @@ const LoadingState = () => {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles className="w-6 h-6 text-yellow-400" />
+                <Sparkles className="w-6 h-6 text-warning" />
               </motion.div>
 
               <motion.div
@@ -64,7 +64,7 @@ const LoadingState = () => {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles className="w-4 h-4 text-blue-400" />
+                <Sparkles className="w-4 h-4 text-primary" />
               </motion.div>
             </motion.div>
           </motion.div>
@@ -76,12 +76,12 @@ const LoadingState = () => {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="space-y-4"
           >
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-text-primary via-primary to-secondary bg-clip-text text-transparent">
               FlashLearn
             </h2>
 
             <motion.p
-              className="text-slate-400 text-lg"
+              className="text-text-muted text-lg"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{
                 duration: 2,
@@ -100,9 +100,9 @@ const LoadingState = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="mt-8"
           >
-            <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden mx-auto">
+            <div className="w-64 h-2 bg-surface-highlight rounded-full overflow-hidden mx-auto">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
+                className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
                 animate={{ x: [-256, 256], opacity: [0.5, 1, 0.5] }}
                 transition={{
                   x: {
@@ -131,7 +131,7 @@ const LoadingState = () => {
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
+                className="w-3 h-3 bg-gradient-to-r from-primary to-secondary rounded-full"
                 animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
                 transition={{
                   duration: 1.5,

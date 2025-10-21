@@ -1,123 +1,43 @@
-// utils/adminApi.js
-const API_URL = import.meta.env.VITE_API_URL;
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_API_KEY;
+import { adminApi as adminClient } from "./apiClient";
 
-function headers(extra = {}) {
-  return { "X-Admin-Key": ADMIN_KEY, ...extra };
-}
+export const getAdminStats = (within = 5) => adminClient.getStats(within);
 
-function qsFrom(opts = {}) {
-  const q = new URLSearchParams();
-  Object.entries(opts).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const s = q.toString();
-  return s ? `?${s}` : "";
-}
+export const getOnlineUsers = (within = 5) =>
+  adminClient.getOnlineUsers(within);
 
-export async function getAdminStats(within = 5) {
-  const res = await fetch(`${API_URL}/admin/users/stats?within=${within}`, {
-    headers: headers(),
-  });
-  if (!res.ok) throw new Error(`stats ${res.status}`);
-  return res.json();
-}
+export const listUsers = (params = {}) => adminClient.listUsers(params);
 
-export async function getOnlineUsers(within = 5) {
-  const res = await fetch(`${API_URL}/admin/users/online?within=${within}`, {
-    headers: headers(),
-  });
-  if (!res.ok) throw new Error(`online ${res.status}`);
-  return res.json();
-}
-
-export async function listUsers(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${API_URL}/admin/users/list?${qs}`, {
-    headers: headers(),
-  });
-  if (!res.ok) throw new Error(`list ${res.status}`);
-  return res.json();
-}
-
-/**
- * Delete by emails with demo knobs.
- * opts: {
- *   strategy: 'fast' | 'slow' | 'turbo',
- *   commit_per: 'user' | 'row', // slow only
- *   sleep_ms: number,            // slow only
- *   echo_sql: boolean            // optional
- *   dry_run: boolean             // default false
- * }
- */
-export async function deleteUsers(emails = [], opts = {}) {
-  const {
-    strategy = "fast",
-    commit_per = "user",
-    sleep_ms = 0,
-    echo_sql = false,
-    dry_run = false,
-  } = opts;
-
-  const qs = qsFrom({
-    strategy,
-    commit_per: strategy === "slow" ? commit_per : undefined,
-    sleep_ms: strategy === "slow" ? Number(sleep_ms || 0) : undefined,
-    echo_sql: echo_sql ? 1 : undefined,
-  });
-
-  const res = await fetch(`${API_URL}/admin/users/delete${qs}`, {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ emails, dry_run: !!dry_run }),
-  });
-  if (!res.ok) throw new Error(`delete ${res.status}`);
-  return res.json();
-}
-
-/** Optional: delete by IDs with the same knobs */
-export async function deleteUsersByIds(user_ids = [], opts = {}) {
-  const {
-    strategy = "fast",
-    commit_per = "user",
-    sleep_ms = 0,
-    echo_sql = false,
-    dry_run = false,
-  } = opts;
-
-  const qs = qsFrom({
-    strategy,
-    commit_per: strategy === "slow" ? commit_per : undefined,
-    sleep_ms: strategy === "slow" ? Number(sleep_ms || 0) : undefined,
-    echo_sql: echo_sql ? 1 : undefined,
-  });
-
-  const res = await fetch(`${API_URL}/admin/users/delete-by-ids${qs}`, {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ user_ids, dry_run: !!dry_run }),
-  });
-  if (!res.ok) throw new Error(`delete_by_ids ${res.status}`);
-  return res.json();
-}
-
-// ...
-
-export async function createTeacherInvite(
-  payload = { max_uses: 1, expires_in_days: 30 }
-) {
-  const res = await fetch(`${API_URL}/admin/teacher-invites`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Admin-Key": ADMIN_KEY,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+const buildAdminParams = ({
+  strategy = "fast",
+  commit_per = "user",
+  sleep_ms = 0,
+  echo_sql = false,
+} = {}) => {
+  const params = { strategy };
+  if (strategy === "slow") {
+    params.commit_per = commit_per;
+    params.sleep_ms = Number(sleep_ms || 0);
   }
-  return res.json(); // { id, code, max_uses, expires_at }
-}
+  if (echo_sql) {
+    params.echo_sql = 1;
+  }
+  return params;
+};
+
+export const deleteUsers = (emails = [], opts = {}) =>
+  adminClient.deleteUsers(
+    { emails, dry_run: Boolean(opts?.dry_run) },
+    { params: buildAdminParams(opts) }
+  );
+
+export const deleteUsersByIds = (user_ids = [], opts = {}) =>
+  adminClient.deleteUsersByIds(
+    { user_ids, dry_run: Boolean(opts?.dry_run) },
+    { params: buildAdminParams(opts) }
+  );
+
+export const createTeacherInvite = (payload) =>
+  adminClient.createTeacherInvite(payload);
+
+export const batchCreateDemoUsers = (payload) =>
+  adminClient.batchCreateDemoUsers(payload);

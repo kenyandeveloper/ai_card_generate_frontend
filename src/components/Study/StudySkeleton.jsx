@@ -1,93 +1,61 @@
-// src/components/Study/StudySkeleton.jsx
-import {
-  Skeleton,
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-} from "@mui/material";
-
 export default function StudySkeleton() {
   return (
-    <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Skeleton variant="text" width={300} height={48} sx={{ mb: 4 }} />
+  <div className="min-h-screen bg-background">
+      {/* Main container */}
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Title skeleton */}
+        <div className="w-72 h-12 bg-surface-highlight rounded animate-pulse mb-8" />
 
-        <Box sx={{ mb: 4, p: 3, borderRadius: 2, bgcolor: "background.paper" }}>
-          <Grid container spacing={3}>
+        {/* Stats section skeleton */}
+        <div className="bg-surface-elevated rounded-2xl p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <Grid item xs={12} md={4} key={i}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Skeleton variant="circular" width={48} height={48} />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Skeleton
-                      variant="text"
-                      width="60%"
-                      height={24}
-                      sx={{ mb: 0.5 }}
-                    />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Skeleton variant="text" width="40%" height={32} />
-                      {i === 0 && (
-                        <Skeleton
-                          variant="rectangular"
-                          width={80}
-                          height={32}
-                          sx={{ borderRadius: 1 }}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-                </Box>
-              </Grid>
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-surface-highlight rounded-full animate-pulse flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="w-3/5 h-6 bg-surface-highlight rounded animate-pulse" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2/5 h-8 bg-surface-highlight rounded animate-pulse" />
+                    {i === 0 && (
+                      <div className="w-20 h-8 bg-surface-highlight rounded animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
-          </Grid>
-        </Box>
+          </div>
+        </div>
 
-        <Skeleton variant="text" width={200} height={36} sx={{ mb: 3 }} />
+        {/* Subtitle skeleton */}
+        <div className="w-48 h-9 bg-surface-highlight rounded animate-pulse mb-6" />
 
-        <Grid container spacing={3}>
+        {/* Deck grid skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Card sx={{ borderRadius: 3, height: "100%" }}>
-                <CardContent sx={{ p: 0 }}>
-                  <Box sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
-                    <Skeleton variant="text" width="80%" height={32} />
-                  </Box>
-                  <Box sx={{ p: 3 }}>
-                    <Skeleton
-                      variant="text"
-                      width="100%"
-                      height={20}
-                      sx={{ mb: 1 }}
-                    />
-                    <Skeleton
-                      variant="text"
-                      width="90%"
-                      height={20}
-                      sx={{ mb: 2 }}
-                    />
-                    <Skeleton
-                      variant="rectangular"
-                      width={80}
-                      height={32}
-                      sx={{ borderRadius: 16 }}
-                    />
-                  </Box>
-                  <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
-                    <Skeleton
-                      variant="rectangular"
-                      height={40}
-                      sx={{ borderRadius: 2 }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            <div
+              key={i}
+              className="bg-surface-elevated rounded-2xl border border-border-muted flex flex-col h-full"
+            >
+              {/* Card header */}
+              <div className="p-6 border-b border-border-muted">
+                <div className="w-4/5 h-8 bg-surface-highlight rounded animate-pulse" />
+              </div>
+
+              {/* Card body */}
+              <div className="p-6 flex-1">
+                <div className="w-full h-5 bg-surface-highlight rounded animate-pulse mb-2" />
+                <div className="w-11/12 h-5 bg-surface-highlight rounded animate-pulse mb-4" />
+                <div className="w-20 h-8 bg-surface-highlight rounded-full animate-pulse" />
+              </div>
+
+              {/* Card footer */}
+              <div className="p-4 border-t border-border-muted">
+                <div className="w-full h-10 bg-surface-highlight rounded-lg animate-pulse" />
+              </div>
+            </div>
           ))}
-        </Grid>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

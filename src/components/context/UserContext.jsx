@@ -1,13 +1,12 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect, useCallback } from "react";
 import {
   getToken,
   setToken as writeToken,
   clearToken,
 } from "../../utils/authToken";
+import { authApi } from "../../utils/apiClient";
 
 const UserContext = createContext();
-const API_URL = import.meta.env?.VITE_API_URL;
-
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,47 +24,16 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const authHeaders = () => {
-    const t = getToken();
-    return t ? { Authorization: `Bearer ${t}` } : {};
-    // If you move to cookie auth, return {} and rely on credentials.
-  };
-
-  const parseMaybeJson = async (res) => {
-    const ct = res.headers.get("content-type") || "";
-    if (ct.includes("application/json")) return res.json();
-    const text = await res.text();
-    return text ? { _text: text } : {};
-  };
-
-  const api = async (path, init = {}) => {
-    const res = await fetch(`${API_URL}${path}`, {
-      ...init,
-      headers: { "Content-Type": "application/json", ...(init.headers || {}) },
-      // NOTE: we don’t set credentials here; header auth is default via authHeaders().
-    });
-    if (res.status === 401) {
-      logout();
-      throw new Error("Unauthorized");
-    }
-    const data = await parseMaybeJson(res);
-    if (!res.ok) {
-      const msg = data?.error || data?.message || `HTTP ${res.status}`;
-      throw new Error(msg);
-    }
-    return data;
-  };
-
-  const authedApi = (path, init = {}) =>
-    api(path, {
-      ...init,
-      headers: { ...authHeaders(), ...(init.headers || {}) },
-    });
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setOtpRequired(false);
+  }, []);
 
   // ---------- user fetch ----------
   const refreshUser = async () => {
     try {
-      const data = await authedApi("/user", { method: "GET" });
+      const data = await authApi.getUser();
       setUser(data);
       setIsAuthenticated(true);
       return data;
@@ -94,21 +62,26 @@ export const UserProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [logout]);
+
   // ---------- auth flows ----------
   const signup = async (email, username, password) => {
-    await api("/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, username, password }),
-    });
+    await authApi.signup({ email, username, password });
     setOtpRequired(true);
     return { verification_required: true };
   };
 
   const login = async (email, password) => {
-    const data = await api("/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const data = await authApi.login({ email, password });
     if (data?.access_token) {
       setToken(data.access_token);
       await refreshUser();
@@ -124,19 +97,13 @@ export const UserProvider = ({ children }) => {
   };
 
   const requestOtp = async (email) =>
-    api("/login/otp/request", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    }).then((d) => {
+    authApi.requestOtp({ email }).then((d) => {
       setOtpRequired(d?.status !== "skipped");
       return d;
     });
 
   const verifyOtp = async (email, otp_id, code) => {
-    const data = await api("/login/otp/verify", {
-      method: "POST",
-      body: JSON.stringify({ email, otp_id, code }),
-    });
+    const data = await authApi.verifyOtp({ email, otp_id, code });
     const token = data?.access_token || data?.token;
     if (!token) throw new Error("Missing access token in response");
     setToken(token);
@@ -146,22 +113,10 @@ export const UserProvider = ({ children }) => {
   };
 
   const requestPasswordReset = async (email) =>
-    api("/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+    authApi.requestPasswordReset({ email });
 
   const resetPassword = async (email, otp_id, code, new_password) =>
-    api("/reset-password", {
-      method: "POST",
-      body: JSON.stringify({ email, otp_id, code, new_password }),
-    });
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    setOtpRequired(false);
-  };
+    authApi.resetPassword({ email, otp_id, code, new_password });
 
   // ---------- role helper ----------
   const hasRole = (...roles) => {

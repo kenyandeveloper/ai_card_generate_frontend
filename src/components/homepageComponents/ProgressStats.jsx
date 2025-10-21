@@ -48,7 +48,7 @@ export default function ProgressStats() {
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="bg-gray-900 rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-2xl transition-shadow"
+          className="bg-surface-elevated rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-2xl transition-shadow border border-border-muted"
         >
           <div className="grid grid-cols-2 gap-4 md:gap-8">
             {circularStats.map((item, i) => (
@@ -74,11 +74,11 @@ export default function ProgressStats() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="bg-gray-900 rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-2xl transition-shadow"
+                className="bg-surface-elevated rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-2xl transition-shadow border border-border-muted"
               >
                 {/* Icon Container */}
-                <div className="w-12 h-12 bg-purple-900/15 rounded-xl flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-purple-500" strokeWidth={2.5} />
+                <div className="w-12 h-12 bg-primary-soft rounded-xl flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-primary" strokeWidth={2.5} />
                 </div>
 
                 {/* Value */}
@@ -88,14 +88,14 @@ export default function ProgressStats() {
                   transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <h3 className="text-3xl md:text-4xl font-bold text-gray-100 mb-2">
+                  <h3 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
                     {stat.value}
                     {stat.suffix || ""}
                   </h3>
-                  <h4 className="text-sm md:text-base font-medium text-gray-100 mb-1">
+                  <h4 className="text-sm md:text-base font-medium text-text-primary mb-1">
                     {stat.label}
                   </h4>
-                  <p className="text-xs md:text-sm text-gray-400">
+                  <p className="text-xs md:text-sm text-text-muted">
                     {stat.description}
                   </p>
                 </motion.div>

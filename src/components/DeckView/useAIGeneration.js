@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { aiGenerate } from "../../utils/aiApi";
 
 export default function useAIGeneration() {
@@ -7,7 +7,7 @@ export default function useAIGeneration() {
   const [error, setError] = useState(null);
   const [generationId, setGenerationId] = useState(null);
 
-  async function preview(text, count = 12) {
+  const preview = useCallback(async (text, count = 12) => {
     setLoading(true);
     setError(null);
     try {
@@ -28,9 +28,9 @@ export default function useAIGeneration() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function insertIntoDeck(deckId, text, count = 12) {
+  const insertIntoDeck = useCallback(async (deckId, text, count = 12) => {
     setLoading(true);
     setError(null);
     try {
@@ -50,13 +50,13 @@ export default function useAIGeneration() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  function clear() {
+  const clear = useCallback(() => {
     setCards([]);
     setError(null);
     setGenerationId(null);
-  }
+  }, []);
 
   return {
     loading,

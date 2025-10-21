@@ -27,40 +27,54 @@ export default function MetaStrip({
     return () => clearTimeout(t);
   }, [ephemeral, ephemeralMs]);
 
-  const Badge = ({ icon: Icon, label, color = "bg-slate-700" }) => (
-    <div className={`flex items-center gap-2 px-3 py-1.5 ${color} rounded-lg`}>
-      <Icon size={16} className="text-slate-300" />
-      <span className="text-sm text-slate-200 font-medium">{label}</span>
+  const Badge = ({
+    icon: Icon,
+    label,
+    color = "bg-surface-highlight",
+    iconColor = "text-text-secondary",
+  }) => (
+    <div
+      className={`flex items-center gap-2 px-3 py-1.5 ${color} rounded-lg border border-border-muted/60`}
+    >
+      <Icon size={16} className={iconColor} />
+      <span className="text-sm text-text-secondary font-medium">{label}</span>
     </div>
   );
 
   const content = (
-    <div className="px-6 py-3 mb-4 border-b border-slate-700 flex items-center gap-3 flex-wrap">
+    <div className="px-6 py-3 mb-4 border-b border-border-muted flex items-center gap-3 flex-wrap bg-surface-muted/40 rounded-xl">
       {showStreak && (
         <Badge
           icon={Flame}
           label={`Day ${streak} streak`}
-          color="bg-orange-500/20"
+          color="bg-warning-soft"
+          iconColor="text-warning"
         />
       )}
       {showXP && (
         <Badge
           icon={Star}
           label={`${xp}/${nextLevelXp} XP`}
-          color="bg-slate-700"
+          color="bg-surface-highlight"
+          iconColor="text-primary"
         />
       )}
       {showWeeklyGoal && (
         <Badge
           icon={Flag}
           label={`${weeklyProgress}/${weeklyTarget} days this week`}
-          color="bg-slate-700"
+          color="bg-surface-highlight"
+          iconColor="text-secondary"
         />
       )}
       {showDue && (
         <div className="group relative">
-          <Badge icon={Clock} label={`${dueCount} due`} color="bg-slate-700" />
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-slate-200 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+          <Badge
+            icon={Clock}
+            label={`${dueCount} due`}
+            color="bg-surface-highlight"
+          />
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-text-secondary text-xs rounded-lg border border-border-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             Cards due for review (spaced repetition)
           </div>
         </div>

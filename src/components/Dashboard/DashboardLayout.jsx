@@ -11,8 +11,8 @@ function PillLink({ to, label, active }) {
       className={[
         "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-colors",
         active
-          ? "bg-indigo-600 text-white"
-          : "bg-white/5 text-white/80 hover:bg-white/10 hover:text-white",
+          ? "bg-primary text-primary-foreground shadow-focus"
+          : "bg-surface-highlight text-text-secondary hover:bg-surface-elevated hover:text-text-primary",
       ].join(" ")}
     >
       {label}
@@ -21,7 +21,7 @@ function PillLink({ to, label, active }) {
 }
 
 export default function DashboardLayout({ children }) {
-  const { hasRole, user } = useUser();
+  const { hasRole } = useUser();
   const { pathname } = useLocation();
 
   const showTeacher = hasRole?.("teacher", "admin");
@@ -33,11 +33,11 @@ export default function DashboardLayout({ children }) {
   const isAdmin = pathname.startsWith("/admin");
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       <NavBar />
 
       {/* Background gradient layer */}
-      <div className="relative before:absolute before:inset-0 before:bg-gradient-radial before:from-indigo-500/8 before:via-transparent before:to-transparent before:pointer-events-none">
+      <div className="relative before:absolute before:inset-0 before:bg-gradient-radial before:from-primary-soft before:via-transparent before:to-transparent before:pointer-events-none">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 md:pt-3 pb-6 md:pb-10">
           {/* Ephemeral top strip */}
           <MetaStrip

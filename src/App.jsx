@@ -1,17 +1,18 @@
 // src/App.jsx
+import { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import { ThemeProvider as MUIThemeProvider } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "./components/ThemeComponents/ThemeProvider";
-import { darkTheme } from "./theme";
 
 import { useUser } from "./components/context/UserContext";
 import DashboardLayout from "./components/Dashboard/DashboardLayout";
+import {
+  ErrorSnackbar,
+  setNotificationCallback,
+} from "./components/common/ErrorSnackbar";
 
 // Teacher
 import TeacherDemoAccounts from "./components/Teacher/DemoAccounts";
@@ -31,6 +32,7 @@ import BillingReturn from "./components/Billing/BillingReturn.jsx";
 import ForgotPassword from "./components/Authentication/ForgotPassword.jsx";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import WelcomeOnboarding from "./pages/WelcomeOnboarding.jsx";
+import ProgressPage from "./pages/ProgressPage.jsx";
 
 // ---- Guard: only teacher/admin may pass ----
 function TeacherGuard({ children }) {
@@ -43,9 +45,11 @@ function TeacherGuard({ children }) {
   // Not authorized → show invite CTA inside the shell
   return (
     <DashboardLayout>
-      <div className="p-6">
-        <h3 className="text-xl font-semibold mb-2">Teacher access required</h3>
-        <p className="mb-3 text-sm opacity-80">
+      <div className="p-6 bg-surface rounded-2xl border border-border-muted">
+        <h3 className="text-xl font-semibold mb-2 text-text-primary">
+          Teacher access required
+        </h3>
+        <p className="mb-3 text-sm text-text-muted">
           Enter a teacher invite code to continue.
         </p>
         <TeacherInviteDialog cta variant="contained" />
@@ -54,10 +58,34 @@ function TeacherGuard({ children }) {
   );
 }
 
-function AppContent() {
+function App() {
+  const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    setNotificationCallback(setNotification);
+    return () => setNotificationCallback(null);
+  }, []);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail;
+      const text =
+        detail?.message ||
+        detail?.text ||
+        "An unexpected error occurred. Please try again.";
+      setNotification({
+        text,
+        severity: detail?.severity || "error",
+      });
+    };
+    window.addEventListener("api:error", handler);
+    return () => {
+      window.removeEventListener("api:error", handler);
+    };
+  }, []);
+
   return (
-    <MUIThemeProvider theme={darkTheme}>
-      <CssBaseline />
+    <>
       <Router>
         <Routes>
           {/* Public */}
@@ -70,6 +98,7 @@ function AppContent() {
 
           {/* Authenticated (your existing pages) */}
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/progress" element={<ProgressPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/mydecks" element={<MyDecks />} />
           <Route path="/mydecks/:deckId" element={<DeckView />} />
@@ -102,14 +131,13 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
-    </MUIThemeProvider>
+
+      <ErrorSnackbar
+        message={notification}
+        onClose={() => setNotification(null)}
+      />
+    </>
   );
 }
 
-export default function App() {
-  return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
-  );
-}
+export default App;

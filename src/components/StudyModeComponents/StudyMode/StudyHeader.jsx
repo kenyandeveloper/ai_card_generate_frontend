@@ -1,42 +1,24 @@
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
 import { X } from "lucide-react";
 
 const StudyHeader = ({ deck, handleExitStudy }) => {
   return (
-    <Box
-      sx={{
-        mb: 4,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <Box>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: "bold", color: "text.primary", mb: 1 }}
-        >
+    <div className="flex justify-between items-center mb-8">
+      <div>
+        <h1 className="text-3xl font-bold text-text-primary mb-2">
           {deck?.title || "Study Session"}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </h1>
+        <p className="text-text-muted">
           Master your knowledge through active recall
-        </Typography>
-      </Box>
-      <Tooltip title="Exit Study Session">
-        <IconButton
-          onClick={handleExitStudy}
-          sx={{
-            bgcolor: "error.main",
-            color: "white",
-            "&:hover": {
-              bgcolor: "error.dark",
-            },
-          }}
-        >
-          <X size={20} />
-        </IconButton>
-      </Tooltip>
-    </Box>
+        </p>
+      </div>
+      <button
+        onClick={handleExitStudy}
+        className="bg-danger hover:bg-danger-emphasis text-text-primary p-2 rounded-lg transition-colors"
+        title="Exit Study Session"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
   );
 };
 

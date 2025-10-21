@@ -1,33 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Download } from "lucide-react";
 import {
   getAdminStats,
   listUsers,
   deleteUsers,
   createTeacherInvite,
+  batchCreateDemoUsers,
 } from "../../utils/adminApi";
 import { formatEAT } from "../../utils/time";
+import { handleApiError } from "../../services/errorHandler";
+import { redeemTeacherCode } from "../../utils/teacherApi";
+import { DataFetchWrapper } from "../common/DataFetchWrapper";
+import { LoadingSkeleton, TableRowSkeleton } from "../common/LoadingSkeleton";
+import { InlineSpinner } from "../common/LoadingSpinner";
+import { showError, showSuccess } from "../common/ErrorSnackbar";
 
-const API_URL = import.meta.env.VITE_API_URL;
 const ADMIN_KEY = import.meta.env?.VITE_ADMIN_API_KEY || "";
 
 function StatCard({ label, value }) {
   return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 h-full">
-      <div className="text-xs uppercase text-slate-400 tracking-wide font-medium">
+    <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted h-full">
+      <div className="text-xs uppercase text-text-muted tracking-wide font-medium">
         {label}
       </div>
-      <div className="text-3xl font-bold mt-2 text-slate-100">{value}</div>
+      <div className="text-3xl font-bold mt-2 text-text-primary">{value}</div>
     </div>
   );
 }
 
 function Alert({ severity, children }) {
   const colors = {
-    warning: "bg-yellow-500/10 border-yellow-500/20 text-yellow-200",
-    error: "bg-red-500/10 border-red-500/20 text-red-200",
-    success: "bg-green-500/10 border-green-500/20 text-green-200",
-    info: "bg-blue-500/10 border-blue-500/20 text-blue-200",
+    warning: "bg-warning-soft border-warning text-warning",
+    error: "bg-danger-soft border-danger text-danger",
+    success: "bg-success-soft border-success text-success",
+    info: "bg-secondary-soft border-secondary text-secondary",
   };
 
   return (
@@ -45,7 +51,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-6 text-slate-100">
+      <h1 className="text-4xl font-bold mb-6 text-text-primary">
         Admin Dashboard
       </h1>
 
@@ -55,7 +61,7 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
-      <div className="border-b border-slate-700 mb-6">
+      <div className="border-b border-border-muted mb-6">
         <div className="flex gap-1">
           {["Overview", "Create Demo Users", "Users", "Teacher Invites"].map(
             (label, i) => (
@@ -64,8 +70,8 @@ export default function AdminDashboard() {
                 onClick={() => setTab(i)}
                 className={`px-6 py-3 font-medium transition-colors ${
                   tab === i
-                    ? "text-blue-400 border-b-2 border-blue-400"
-                    : "text-slate-400 hover:text-slate-300"
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-text-muted hover:text-text-secondary"
                 }`}
               >
                 {label}
@@ -89,70 +95,121 @@ function OverviewTab() {
   const [within, setWithin] = useState(5);
   const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
+  const [loadingStats, setLoadingStats] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setErr("");
+      setLoadingStats(true);
       const data = await getAdminStats(within);
       setStats(data);
+      hasLoadedRef.current = true;
     } catch (e) {
-      setErr(e.message || "Failed to load stats");
+      const message = e.message || "Failed to load stats";
+      setErr(message);
+      if (!hasLoadedRef.current) {
+        showError(message);
+      }
+    } finally {
+      setLoadingStats(false);
     }
-  };
-
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
   }, [within]);
 
-  if (err) return <Alert severity="error">{err}</Alert>;
-  if (!stats) return <p className="text-slate-400">Loading…</p>;
+  // 🔁 Safer polling: no overlapping requests, respects tab visibility, 2-minute cadence
+  useEffect(() => {
+    const POLL_MS = 2 * 60 * 1000; // 120,000 ms
+    let cancelled = false;
+    let timer;
 
-  const unverified = (stats.total_users || 0) - (stats.verified_users || 0);
+    const schedule = () => {
+      timer = setTimeout(tick, POLL_MS);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      // Skip work if the tab is hidden; just reschedule
+      if (!document.hidden) {
+        await load();
+      }
+      if (!cancelled) schedule();
+    };
+
+    // Immediate fetch on mount / when `load` changes
+    load();
+    // Start the polling loop
+    schedule();
+
+    // If the tab becomes visible, do a prompt refresh
+    const onVisible = () => {
+      if (cancelled) return;
+      if (!document.hidden) {
+        clearTimeout(timer);
+        tick(); // run now, then it will reschedule itself
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
+
+  const unverified = (stats?.total_users || 0) - (stats?.verified_users || 0);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total" value={stats.total_users} />
-        <StatCard label="Verified" value={stats.verified_users} />
-        <StatCard label="Unverified" value={unverified} />
-        <StatCard label="Demo" value={stats.demo_users} />
-      </div>
+    <DataFetchWrapper
+      loading={!stats && loadingStats}
+      error={err}
+      onRetry={load}
+      loadingComponent={<LoadingSkeleton count={4} height={80} />}
+    >
+      {stats && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <StatCard label="Total" value={stats.total_users} />
+            <StatCard label="Verified" value={stats.verified_users} />
+            <StatCard label="Unverified" value={unverified} />
+            <StatCard label="Demo" value={stats.demo_users} />
+          </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <div className="text-xs uppercase text-slate-400 tracking-wide font-medium">
-              Online (≈{stats.within_minutes}m)
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border-muted bg-surface-elevated p-6">
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-text-muted">
+                  Online (≈{stats.within_minutes}m)
+                </div>
+                <div className="flex flex-col">
+                  <label className="mb-1 text-xs text-text-muted">
+                    Window (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-40 rounded border border-border-muted bg-background-subtle px-3 py-1.5 text-sm text-text-primary"
+                    value={within}
+                    onChange={(e) =>
+                      setWithin(
+                        Math.max(1, Math.min(120, Number(e.target.value) || 5))
+                      )
+                    }
+                  />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-text-primary">
+                {stats.online_now}
+              </div>
+              <p className="mt-2 text-sm text-text-muted">
+                Active last {stats.within_minutes} minute(s)
+              </p>
             </div>
-            <div className="flex flex-col">
-              <label className="text-xs text-slate-400 mb-1">
-                Window (minutes)
-              </label>
-              <input
-                type="number"
-                className="w-40 bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
-                value={within}
-                onChange={(e) =>
-                  setWithin(
-                    Math.max(1, Math.min(120, Number(e.target.value) || 5))
-                  )
-                }
-              />
-            </div>
+
+            <StatCard label="New (24h)" value={stats.new_last_24h} />
           </div>
-          <div className="text-3xl font-bold text-slate-100">
-            {stats.online_now}
-          </div>
-          <p className="text-sm text-slate-400 mt-2">
-            Active last {stats.within_minutes} minute(s)
-          </p>
         </div>
-
-        <StatCard label="New (24h)" value={stats.new_last_24h} />
-      </div>
-    </div>
+      )}
+    </DataFetchWrapper>
   );
 }
 
@@ -199,22 +256,16 @@ function CreateDemoTab() {
         expires_in_days: Number(expires) || undefined,
         password: fixedPw || undefined,
       };
-      const res = await fetch(`${API_URL}/admin/demo/batch_create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Key": ADMIN_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await batchCreateDemoUsers(payload);
       setResult(data);
+      showSuccess(
+        `Created ${data.count} demo user${data.count === 1 ? "" : "s"}`
+      );
     } catch (e) {
-      setErr(e.message || "Failed to create demo users");
+      const apiError = handleApiError(e);
+      const message = apiError.message || "Failed to create demo users";
+      setErr(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -226,41 +277,41 @@ function CreateDemoTab() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Count</label>
+          <label className="block text-sm text-text-muted mb-1">Count</label>
           <input
             type="number"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={count}
             onChange={(e) => setCount(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Prefix</label>
+          <label className="block text-sm text-text-muted mb-1">Prefix</label>
           <input
             type="text"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">
+          <label className="block text-sm text-text-muted mb-1">
             Email domain
           </label>
           <input
             type="text"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">
+          <label className="block text-sm text-text-muted mb-1">
             Expires in (days)
           </label>
           <input
             type="number"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={expires}
             onChange={(e) => setExpires(e.target.value)}
           />
@@ -268,12 +319,12 @@ function CreateDemoTab() {
       </div>
 
       <div>
-        <label className="block text-sm text-slate-400 mb-1">
+        <label className="block text-sm text-text-muted mb-1">
           Fixed password (optional)
         </label>
         <input
           type="text"
-          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+          className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
           value={fixedPw}
           onChange={(e) => setFixedPw(e.target.value)}
         />
@@ -282,26 +333,33 @@ function CreateDemoTab() {
       <button
         onClick={createBatch}
         disabled={loading}
-        className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 px-6 py-2.5 rounded-lg font-medium transition-colors"
+        className="flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 font-medium transition-colors bg-primary hover:bg-primary-emphasis disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "Creating…" : "Create demo users"}
+        {loading ? (
+          <>
+            <InlineSpinner size={18} />
+            Creating…
+          </>
+        ) : (
+          "Create demo users"
+        )}
       </button>
 
       {result?.users?.length > 0 && (
         <div className="space-y-4">
           <Alert severity="success">Created {result.count} users</Alert>
 
-          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <div className="bg-surface-elevated rounded-xl border border-border-muted overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-700 bg-slate-900/50">
-                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                <tr className="border-b border-border-muted bg-background-subtle/50">
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
                     Username
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
                     Email
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-slate-300">
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
                     Password
                   </th>
                 </tr>
@@ -310,11 +368,15 @@ function CreateDemoTab() {
                 {result.users.map((u) => (
                   <tr
                     key={u.email}
-                    className="border-b border-slate-700/50 hover:bg-slate-700/30"
+                    className="border-b border-border-muted/50 hover:bg-surface-highlight/40"
                   >
-                    <td className="px-6 py-3 text-slate-200">{u.username}</td>
-                    <td className="px-6 py-3 text-slate-200">{u.email}</td>
-                    <td className="px-6 py-3 text-slate-200">{u.password}</td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.username}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">{u.email}</td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.password}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -324,7 +386,7 @@ function CreateDemoTab() {
           {asCSV && (
             <button
               onClick={downloadCSV}
-              className="flex items-center gap-2 border border-slate-600 hover:bg-slate-800 px-6 py-2.5 rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 border border-border-muted hover:bg-surface-elevated px-6 py-2.5 rounded-lg font-medium transition-colors"
             >
               <Download className="w-4 h-4" />
               Download CSV
@@ -353,7 +415,7 @@ function UsersTab() {
   const [echoSql, setEchoSql] = useState(true);
   const [opInfo, setOpInfo] = useState(null);
 
-  const paramsForList = () => {
+  const paramsForList = useCallback(() => {
     const params = {
       limit: perPage,
       offset: (page - 1) * perPage,
@@ -365,9 +427,9 @@ function UsersTab() {
     else if (type === "verified") params.email_verified = true;
     else if (type === "unverified") params.email_verified = false;
     return params;
-  };
+  }, [perPage, page, q, activeWithin, type]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setErr("");
       setLoading(true);
@@ -379,11 +441,11 @@ function UsersTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paramsForList]);
 
   useEffect(() => {
     load();
-  }, [type, q, page, perPage, activeWithin]);
+  }, [load]);
 
   const totalPages = Math.max(1, Math.ceil((data?.total || 0) / perPage));
   const items = data?.items || [];
@@ -460,24 +522,18 @@ function UsersTab() {
         not_found: res.not_found?.length || 0,
       });
 
-      alert(
-        [
-          `Mode: ${res.performance}`,
-          `Time: ${res.timing_seconds ?? "?"}s`,
-          `Deleted: ${res.deleted?.length || 0}`,
-          res.related
-            ? `Children → progress=${res.related.progress ?? "-"}, flashcards=${
-                res.related.flashcards ?? "-"
-              }, decks=${res.related.decks ?? "-"}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-      );
+      const summary = [
+        `Mode: ${res.performance}`,
+        `Time: ${res.timing_seconds ?? "?"}s`,
+        `Deleted: ${res.deleted?.length || 0}`,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+      showSuccess(summary);
 
       await load();
     } catch (e) {
-      alert(e.message || "Delete failed");
+      showError(e.message || "Delete failed");
     }
   }
 
@@ -487,9 +543,9 @@ function UsersTab() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Type</label>
+          <label className="block text-sm text-text-muted mb-1">Type</label>
           <select
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={type}
             onChange={(e) => {
               setPage(1);
@@ -504,13 +560,13 @@ function UsersTab() {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">
+          <label className="block text-sm text-text-muted mb-1">
             Active within (mins)
           </label>
           <input
             type="text"
             placeholder="e.g. 5"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={activeWithin}
             onChange={(e) => {
               setPage(1);
@@ -520,12 +576,12 @@ function UsersTab() {
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm text-slate-400 mb-1">
+          <label className="block text-sm text-text-muted mb-1">
             Search (email or username)
           </label>
           <input
             type="text"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={q}
             onChange={(e) => {
               setPage(1);
@@ -535,9 +591,9 @@ function UsersTab() {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Per page</label>
+          <label className="block text-sm text-text-muted mb-1">Per page</label>
           <select
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={perPage}
             onChange={(e) => {
               setPage(1);
@@ -556,23 +612,23 @@ function UsersTab() {
           <button
             onClick={load}
             disabled={loading}
-            className="w-full border border-slate-600 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600 px-4 py-2 rounded-lg font-medium transition-colors"
+            className="w-full border border-border-muted hover:bg-surface-elevated disabled:bg-background-subtle disabled:text-text-subtle px-4 py-2 rounded-lg font-medium transition-colors"
           >
             {loading ? "…" : "Refresh"}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-t border-b border-slate-700">
-        <p className="text-sm text-slate-400">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-t border-b border-border-muted">
+        <p className="text-sm text-text-muted">
           {data?.total ?? 0} total • {items.length} shown
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-400">Commit per</label>
+            <label className="text-sm text-text-muted">Commit per</label>
             <select
-              className="bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
+              className="bg-surface-elevated border border-border-muted rounded px-3 py-1.5 text-sm text-text-primary"
               value={commitPer}
               onChange={(e) => setCommitPer(e.target.value)}
             >
@@ -582,10 +638,10 @@ function UsersTab() {
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-400">sleep ms</label>
+            <label className="text-sm text-text-muted">sleep ms</label>
             <input
               type="number"
-              className="w-24 bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-100"
+              className="w-24 bg-surface-elevated border border-border-muted rounded px-3 py-1.5 text-sm text-text-primary"
               value={sleepMs}
               onChange={(e) =>
                 setSleepMs(Math.max(0, Number(e.target.value) || 0))
@@ -597,19 +653,19 @@ function UsersTab() {
             onClick={() => setEchoSql((v) => !v)}
             className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
               echoSql
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "border border-slate-600 hover:bg-slate-800 text-slate-300"
+                ? "bg-primary hover:bg-primary-emphasis text-text-primary"
+                : "border border-border-muted hover:bg-surface-elevated text-text-secondary"
             }`}
           >
             SQL Echo {echoSql ? "ON" : "OFF"}
           </button>
 
-          <div className="h-6 w-px bg-slate-700" />
+          <div className="h-6 w-px bg-surface-highlight" />
 
           <button
             onClick={() => runDelete("fast")}
             disabled={!selected.size}
-            className="bg-red-600 hover:bg-red-700 disabled:bg-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+            className="bg-danger hover:bg-danger-emphasis disabled:bg-surface-highlight disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors text-text-primary"
           >
             Delete (FAST)
           </button>
@@ -617,7 +673,7 @@ function UsersTab() {
           <button
             onClick={() => runDelete("slow")}
             disabled={!selected.size}
-            className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 disabled:border-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+            className="border border-warning text-warning hover:bg-warning-soft disabled:border-border-muted disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors"
           >
             Delete (SLOW)
           </button>
@@ -625,7 +681,7 @@ function UsersTab() {
           <button
             onClick={() => runDelete("turbo")}
             disabled={!selected.size}
-            className="border border-purple-600 text-purple-500 hover:bg-purple-600/10 disabled:border-slate-700 disabled:text-slate-500 px-4 py-1.5 rounded text-sm font-medium transition-colors"
+            className="border border-accent text-accent hover:bg-accent-soft disabled:border-border-muted disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors"
           >
             Delete (TURBO)
           </button>
@@ -647,114 +703,123 @@ function UsersTab() {
         </Alert>
       )}
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-700 bg-slate-900/50">
-              <th className="px-6 py-3">
-                <input
-                  type="checkbox"
-                  checked={
-                    items.length > 0 &&
-                    items.every((u) => selected.has(u.email))
-                  }
-                  onChange={toggleAllOnPage}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900"
-                />
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Username
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Email
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Demo
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Verified
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Last seen
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Created
-              </th>
-              <th className="text-left px-6 py-3 font-medium text-slate-300">
-                Demo expires
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((u) => {
-              const checked = selected.has(u.email);
-              return (
-                <tr
-                  key={u.id}
-                  className="border-b border-slate-700/50 hover:bg-slate-700/30"
-                >
-                  <td className="px-6 py-3">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleOne(u.email)}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-900"
-                    />
-                  </td>
-                  <td className="px-6 py-3 text-slate-200">{u.username}</td>
-                  <td className="px-6 py-3 text-slate-200">{u.email}</td>
-                  <td className="px-6 py-3 text-slate-200">
-                    {u.is_demo ? "Yes" : "No"}
-                  </td>
-                  <td className="px-6 py-3 text-slate-200">
-                    {u.email_verified ? "Yes" : "No"}
-                  </td>
-                  <td className="px-6 py-3 text-slate-200">
-                    {formatEAT(u.last_seen)}
-                  </td>
-                  <td className="px-6 py-3 text-slate-200">
-                    {u.created_at
-                      ? new Date(u.created_at).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="px-6 py-3 text-slate-200">
-                    {u.demo_expires_at
-                      ? new Date(u.demo_expires_at).toLocaleString()
-                      : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-            {!items.length && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-8 text-center text-slate-400"
-                >
-                  No users
-                </td>
+      <DataFetchWrapper
+        loading={loading}
+        error={err}
+        onRetry={load}
+        loadingComponent={
+          <div className="overflow-hidden rounded-xl border border-border-muted bg-surface-elevated">
+            <table className="w-full text-sm">
+              <tbody>
+                <TableRowSkeleton columns={8} rows={Math.min(perPage, 8)} />
+              </tbody>
+            </table>
+          </div>
+        }
+        isEmpty={!loading && items.length === 0}
+        emptyMessage="No users found."
+      >
+        <div className="bg-surface-elevated rounded-xl border border-border-muted overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border-muted bg-background-subtle/50">
+                <th className="px-6 py-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      items.length > 0 &&
+                      items.every((u) => selected.has(u.email))
+                    }
+                    onChange={toggleAllOnPage}
+                    className="w-4 h-4 rounded border-border-muted bg-background-subtle"
+                  />
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Username
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Email
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Demo
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Verified
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Last seen
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Created
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Demo expires
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {items.map((u) => {
+                const checked = selected.has(u.email);
+                return (
+                  <tr
+                    key={u.id}
+                    className="border-b border-border-muted/50 hover:bg-surface-highlight/40"
+                  >
+                    <td className="px-6 py-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOne(u.email)}
+                        className="w-4 h-4 rounded border-border-muted bg-background-subtle"
+                      />
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.username}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">{u.email}</td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.is_demo ? "Yes" : "No"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.email_verified ? "Yes" : "No"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {formatEAT(u.last_seen)}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.created_at
+                        ? new Date(u.created_at).toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.demo_expires_at
+                        ? new Date(u.demo_expires_at).toLocaleString()
+                        : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </DataFetchWrapper>
 
       <div className="flex justify-center">
         <div className="flex gap-2">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-2 border border-slate-600 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300"
+            className="px-4 py-2 border border-border-muted rounded-lg hover:bg-surface-elevated disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
           >
             Previous
           </button>
-          <div className="flex items-center px-4 py-2 text-slate-300">
+          <div className="flex items-center px-4 py-2 text-text-secondary">
             Page {page} of {totalPages}
           </div>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 border border-slate-600 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300"
+            className="px-4 py-2 border border-border-muted rounded-lg hover:bg-surface-elevated disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
           >
             Next
           </button>
@@ -787,8 +852,11 @@ function TeacherInvitesTab() {
       };
       const inv = await createTeacherInvite(payload);
       setInvite(inv);
+      showSuccess("Invite created successfully");
     } catch (e) {
-      setErr(e.message || "Failed to create invite");
+      const message = e.message || "Failed to create invite";
+      setErr(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -797,7 +865,7 @@ function TeacherInvitesTab() {
   const copy = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert("Copied!");
+      showSuccess("Copied to clipboard");
     } catch {
       // no-op
     }
@@ -809,24 +877,11 @@ function TeacherInvitesTab() {
       const inv =
         invite ||
         (await createTeacherInvite({ max_uses: 1, expires_in_days: 30 }));
-      await fetch(`${API_URL}/auth/teacher/redeem`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${
-            localStorage.getItem("authToken") ||
-            localStorage.getItem("jwt") ||
-            ""
-          }`,
-        },
-        body: JSON.stringify({ code: inv.code }),
-      }).then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      });
+      await redeemTeacherCode(inv.code);
       window.location.href = "/teacher";
     } catch (e) {
-      setErr(e.message || "Self-promote failed");
+      const apiError = handleApiError(e);
+      setErr(apiError.message || "Self-promote failed");
     } finally {
       setLoading(false);
     }
@@ -842,30 +897,30 @@ function TeacherInvitesTab() {
 
       {err && <Alert severity="error">{err}</Alert>}
 
-      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h2 className="text-xl font-semibold mb-4 text-slate-100">
+      <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted">
+        <h2 className="text-xl font-semibold mb-4 text-text-primary">
           Create a Teacher Invite
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">
+            <label className="block text-sm text-text-muted mb-1">
               Max uses
             </label>
             <input
               type="number"
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+              className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-primary"
               value={maxUses}
               onChange={(e) => setMaxUses(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">
+            <label className="block text-sm text-text-muted mb-1">
               Expires in (days)
             </label>
             <input
               type="number"
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-100"
+              className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-primary"
               value={days}
               onChange={(e) => setDays(e.target.value)}
             />
@@ -874,7 +929,7 @@ function TeacherInvitesTab() {
             <button
               onClick={makeInvite}
               disabled={loading || !ADMIN_KEY}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 px-4 py-2 rounded-lg font-medium transition-colors"
+              className="w-full bg-primary hover:bg-primary-emphasis disabled:bg-surface-highlight disabled:text-text-primary0 px-4 py-2 rounded-lg font-medium transition-colors"
             >
               {loading ? "Creating…" : "Create invite"}
             </button>
@@ -882,24 +937,24 @@ function TeacherInvitesTab() {
         </div>
 
         {invite && (
-          <div className="space-y-4 pt-4 border-t border-slate-700">
+          <div className="space-y-4 pt-4 border-t border-border-muted">
             <Alert severity="success">Invite created.</Alert>
 
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <label className="block text-sm text-slate-400 mb-1">
+                <label className="block text-sm text-text-muted mb-1">
                   Code
                 </label>
                 <input
                   type="text"
                   value={invite.code}
                   disabled
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-400"
+                  className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-muted"
                 />
               </div>
               <button
                 onClick={() => copy(invite.code)}
-                className="border border-slate-600 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                className="border border-border-muted hover:bg-surface-highlight px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Copy
               </button>
@@ -907,19 +962,19 @@ function TeacherInvitesTab() {
 
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <label className="block text-sm text-slate-400 mb-1">
+                <label className="block text-sm text-text-muted mb-1">
                   Invite link
                 </label>
                 <input
                   type="text"
                   value={link}
                   disabled
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-slate-400"
+                  className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-muted"
                 />
               </div>
               <button
                 onClick={() => copy(link)}
-                className="border border-slate-600 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                className="border border-border-muted hover:bg-surface-highlight px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Copy link
               </button>
@@ -929,7 +984,7 @@ function TeacherInvitesTab() {
               <button
                 onClick={makeMeTeacher}
                 disabled={loading}
-                className="w-full border border-slate-600 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600 px-4 py-2 rounded-lg font-medium transition-colors"
+                className="w-full border border-border-muted hover:bg-surface-elevated disabled:bg-background-subtle disabled:text-text-subtle px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 {loading ? "Applying…" : "Make me a teacher (dev)"}
               </button>
@@ -938,9 +993,9 @@ function TeacherInvitesTab() {
         )}
       </div>
 
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-text-muted">
         Tip: share the link with a logged-in user. When they open{" "}
-        <code className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+        <code className="bg-surface-elevated px-2 py-0.5 rounded text-text-secondary">
           /teacher?code=…
         </code>
         , the portal will auto-redeem and unlock.

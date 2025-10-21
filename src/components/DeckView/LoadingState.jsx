@@ -1,90 +1,50 @@
-import { Skeleton, Box, Grid, useMediaQuery } from "@mui/material";
-
 const LoadingState = () => {
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
-
   return (
-    <Box sx={{ width: "100%" }}>
+    <div className="w-full">
       {/* Breadcrumb */}
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1 }}>
-        <Skeleton variant="text" width={80} height={24} />
-        <Skeleton variant="text" width={16} height={24} />
-        <Skeleton variant="text" width={100} height={24} />
-      </Box>
+      <div className="mb-6 flex items-center gap-2">
+        <div className="h-6 w-20 animate-pulse rounded bg-surface-highlight"></div>
+        <div className="h-6 w-4 animate-pulse rounded bg-surface-highlight"></div>
+        <div className="h-6 w-24 animate-pulse rounded bg-surface-highlight"></div>
+      </div>
 
       {/* Deck Title & Add Button */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Box>
-          <Skeleton
-            variant="text"
-            width={isMobile ? 180 : 240}
-            height={isMobile ? 32 : 42}
-          />
-          <Skeleton
-            variant="text"
-            width={isMobile ? 120 : 180}
-            height={20}
-            sx={{ mt: 1 }}
-          />
-        </Box>
-        <Skeleton
-          variant="rectangular"
-          width={isMobile ? 100 : 130}
-          height={isMobile ? 36 : 40}
-          sx={{ borderRadius: 2 }}
-        />
-      </Box>
+      <div className="mb-4 flex justify-between items-center">
+        <div className="flex-1">
+          <div className="h-10 w-48 animate-pulse rounded bg-surface-highlight md:h-12 md:w-60"></div>
+          <div className="mt-2 h-5 w-32 animate-pulse rounded bg-surface-highlight md:w-44"></div>
+        </div>
+        <div className="h-10 w-24 animate-pulse rounded-xl bg-surface-highlight md:h-12 md:w-32"></div>
+      </div>
 
       {/* Flashcard Grid */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[...Array(9)].map((_, i) => (
-          <Grid item xs={12} sm={6} md={4} key={i}>
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                borderRadius: 2,
-                px: 2,
-                py: 2,
-                minHeight: 140,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              {/* Question label */}
-              <Skeleton variant="text" width={60} height={20} sx={{ mb: 1 }} />
+          <div
+            key={i}
+            className="bg-surface-elevated rounded-xl px-4 py-4 min-h-[140px] flex flex-col justify-between"
+          >
+            {/* Question label */}
+            <div className="h-5 w-16 animate-pulse rounded bg-surface-highlight mb-2"></div>
 
-              {/* Question text */}
-              <Skeleton variant="text" width="90%" height={24} />
-              <Skeleton variant="text" width="70%" height={24} sx={{ mb: 2 }} />
+            {/* Question text */}
+            <div className="h-6 w-11/12 animate-pulse rounded bg-surface-highlight mb-1"></div>
+            <div className="h-6 w-8/12 animate-pulse rounded bg-surface-highlight mb-4"></div>
 
-              {/* Actions - bottom left */}
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Skeleton variant="circular" width={20} height={20} />
-                <Skeleton variant="circular" width={20} height={20} />
-              </Box>
-            </Box>
-          </Grid>
+            {/* Actions - bottom left */}
+            <div className="flex gap-2">
+              <div className="h-5 w-5 animate-pulse rounded-full bg-surface-highlight"></div>
+              <div className="h-5 w-5 animate-pulse rounded-full bg-surface-highlight"></div>
+            </div>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       {/* Study Button */}
-      <Box sx={{ mt: 5, display: "flex", justifyContent: "center" }}>
-        <Skeleton
-          variant="rectangular"
-          width={isMobile ? 150 : 180}
-          height={isMobile ? 40 : 48}
-          sx={{ borderRadius: 2 }}
-        />
-      </Box>
-    </Box>
+      <div className="mt-8 flex justify-center md:mt-12">
+        <div className="h-12 w-36 animate-pulse rounded-xl bg-surface-highlight md:h-14 md:w-44"></div>
+      </div>
+    </div>
   );
 };
 

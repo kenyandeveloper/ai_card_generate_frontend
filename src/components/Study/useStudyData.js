@@ -1,56 +1,55 @@
 // src/components/Study/useStudyData.js
-import { useState, useEffect } from "react";
-import { fetchDecks } from "../../utils/deckApi";
+import { useEffect, useMemo, useState } from "react";
+import { useDecks } from "../../hooks/useDecks";
 
 export default function useStudyData(decksPerPage) {
-  const [decks, setDecks] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    decks: allDecks,
+    pagination: cachedPagination,
+    loading,
+    error,
+    refetch,
+  } = useDecks();
 
-  const fetchDecksData = async (page) => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const { decks: fetchedDecks, pagination: fetchedPagination } =
-        await fetchDecks(
-          token,
-          page, // Use the page parameter here
-          decksPerPage
-        );
+  const [currentPage, setCurrentPage] = useState(1);
 
-      setDecks(Array.isArray(fetchedDecks) ? fetchedDecks : []);
-      setPagination({
-        currentPage: fetchedPagination.current_page,
-        totalPages: fetchedPagination.total_pages,
-        totalItems: fetchedPagination.total_items,
-      });
-    } catch (err) {
-      setError(err);
-      console.error("Error fetching decks:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const totalItems = allDecks.length;
+  const totalPages =
+    totalItems === 0 ? 1 : Math.max(1, Math.ceil(totalItems / decksPerPage));
 
   useEffect(() => {
-    fetchDecksData(pagination.currentPage);
-  }, [pagination.currentPage]);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const decks = useMemo(() => {
+    const start = (currentPage - 1) * decksPerPage;
+    return allDecks.slice(start, start + decksPerPage);
+  }, [allDecks, currentPage, decksPerPage]);
+
+  const pagination = useMemo(
+    () => ({
+      currentPage,
+      totalPages,
+      totalItems,
+      completedThisWeek: cachedPagination?.completedThisWeek ?? 0,
+      dueCount: cachedPagination?.dueCount ?? 0,
+    }),
+    [currentPage, totalPages, totalItems, cachedPagination]
+  );
 
   const handlePageChange = (page) => {
-    setPagination((prev) => ({ ...prev, currentPage: page }));
-    setIsLoading(true);
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
   };
 
   return {
     decks,
     pagination,
-    isLoading,
+    isLoading: loading,
     error,
     handlePageChange,
-    refreshData: fetchDecksData,
+    refreshData: () => refetch(),
   };
 }

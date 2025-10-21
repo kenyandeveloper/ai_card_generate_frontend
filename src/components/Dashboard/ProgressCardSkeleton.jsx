@@ -27,7 +27,7 @@ const ProgressCardSkeleton = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.1 }}
-      className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6"
+      className="bg-surface-elevated rounded-2xl shadow-xl border border-border-muted p-6"
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
@@ -36,7 +36,7 @@ const ProgressCardSkeleton = () => {
       </div>
 
       {/* Weekly Goal Progress Skeleton */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl border border-slate-700">
+      <div className="mb-8 p-6 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl border border-border-muted">
         <div className="flex justify-between items-center mb-3">
           <SkeletonBox className="h-6 w-40" />
           <div className="flex items-center gap-2">
@@ -61,10 +61,10 @@ const ProgressCardSkeleton = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-            className="bg-slate-700/50 rounded-xl p-4 border border-slate-700"
+            className="bg-surface-highlight/60 rounded-xl p-4 border border-border-muted"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-slate-600 rounded-lg">
+              <div className="p-2 bg-surface-highlight rounded-lg">
                 <SkeletonBox className="w-5 h-5" />
               </div>
             </div>

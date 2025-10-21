@@ -62,12 +62,12 @@ export default function FeaturesSection() {
   return (
     <section className="mb-16 md:mb-24">
       {/* Heading */}
-      <h2 className="mb-4 text-4xl md:text-5xl font-bold text-center text-gray-100">
+      <h2 className="mb-4 text-4xl md:text-5xl font-bold text-center text-text-primary">
         Features Designed for Effective Learning
       </h2>
 
       {/* Subtitle */}
-      <p className="mb-8 md:mb-12 mx-auto max-w-3xl text-base md:text-lg text-center text-gray-400 font-normal">
+      <p className="mb-8 md:mb-12 mx-auto max-w-3xl text-base md:text-lg text-center text-text-muted font-normal">
         Our platform combines proven learning techniques with modern technology
         to help you learn faster and remember longer.
       </p>

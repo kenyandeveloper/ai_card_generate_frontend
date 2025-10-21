@@ -14,11 +14,11 @@ function StreakPill() {
 
   return (
     <div
-      className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-950/30 rounded-full border border-orange-800"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-warning-soft rounded-full border border-warning/50"
       aria-label={`Current learning streak: Day ${streakDays}`}
     >
-      <Flame className="w-4 h-4 text-orange-500" />
-      <span className="text-sm font-semibold text-gray-100">
+      <Flame className="w-4 h-4 text-warning" />
+      <span className="text-sm font-semibold text-text-primary">
         Day {streakDays}
       </span>
     </div>
@@ -29,12 +29,12 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-800">
+    <nav className="sticky top-0 z-50 bg-surface-elevated/80 backdrop-blur-md border-b border-border-muted">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <Link to="/" className="flex items-center">
-            <h1 className="text-2xl font-bold text-white">Flashlearn</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Flashlearn</h1>
           </Link>
 
           {/* Desktop Navigation */}
@@ -43,14 +43,14 @@ export default function Navbar() {
 
             <Link
               to="/login"
-              className="px-4 py-2 text-sm font-medium text-purple-400 border border-purple-400 rounded-lg hover:bg-purple-950/30 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-surface-highlight transition-colors"
             >
               Sign In
             </Link>
 
             <Link
               to="/signup"
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-medium text-text-primary bg-primary-emphasis rounded-lg hover:bg-primary-emphasis transition-colors shadow-sm"
             >
               Get Started
             </Link>
@@ -62,7 +62,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 text-text-primary hover:bg-surface-highlight rounded-lg transition-colors"
               aria-label="Toggle menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -78,18 +78,18 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-800 bg-gray-900">
+        <div className="md:hidden border-t border-border-muted bg-surface-elevated">
           <div className="px-4 py-4 space-y-3">
             {/* Gamification hint */}
-            <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 bg-orange-950/20 rounded-lg border border-orange-800">
-              <Flame className="w-4 h-4 text-orange-500" />
+            <div className="flex items-center gap-2 px-3 py-2 text-sm text-warning bg-warning-soft rounded-lg border border-warning/50">
+              <Flame className="w-4 h-4 text-warning" />
               <span>Keep your streak!</span>
             </div>
 
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="block w-full px-4 py-3 text-center text-sm font-medium text-purple-400 border border-purple-400 rounded-lg hover:bg-purple-950/30 transition-colors"
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-primary border border-primary rounded-lg hover:bg-surface-highlight transition-colors"
             >
               Sign In
             </Link>
@@ -97,7 +97,7 @@ export default function Navbar() {
             <Link
               to="/signup"
               onClick={() => setMobileMenuOpen(false)}
-              className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+              className="block w-full px-4 py-3 text-center text-sm font-medium text-text-primary bg-primary-emphasis rounded-lg hover:bg-primary-emphasis transition-colors"
             >
               Get Started
             </Link>

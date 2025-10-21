@@ -1,14 +1,4 @@
-"use client";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { InlineSpinner } from "../common/LoadingSpinner";
 
 const ConfirmationDialog = ({
   open,
@@ -16,77 +6,70 @@ const ConfirmationDialog = ({
   onConfirm,
   title,
   message,
-  isMobile: propIsMobile,
+  loading = false,
 }) => {
-  const theme = useTheme();
-  const systemIsMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMobile = propIsMobile !== undefined ? propIsMobile : systemIsMobile;
+  if (!open) return null;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullScreen={isMobile}
-      PaperProps={{
-        sx: {
-          width: { xs: "100%", sm: "auto" },
-          maxWidth: { xs: "100%", sm: 500 },
-          m: isMobile ? 0 : 2,
-          borderRadius: isMobile ? 0 : 2,
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          py: { xs: 2, sm: 2.5 },
-          px: { xs: 2, sm: 3 },
-          fontSize: { xs: "1.1rem", sm: "1.25rem" },
-        }}
-      >
-        {title}
-      </DialogTitle>
-      <DialogContent sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 2, sm: 3 } }}>
-        <DialogContentText
-          sx={{
-            fontSize: { xs: "0.9rem", sm: "1rem" },
-            lineHeight: 1.5,
-          }}
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 z-40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-8">
+        <div
+          className="bg-surface-elevated w-full h-full sm:h-auto sm:max-w-md sm:rounded-2xl shadow-2xl flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dialog-title"
         >
-          {message}
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions
-        sx={{
-          p: { xs: 2, sm: 2.5 },
-          justifyContent: "flex-end",
-          gap: 1,
-        }}
-      >
-        <Button
-          onClick={onClose}
-          color="primary"
-          size={isMobile ? "small" : "medium"}
-          sx={{
-            minWidth: { xs: 70, sm: 80 },
-            fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={onConfirm}
-          color="error"
-          variant="contained"
-          size={isMobile ? "small" : "medium"}
-          sx={{
-            minWidth: { xs: 70, sm: 80 },
-            fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-          }}
-        >
-          Confirm
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {/* Title */}
+          <div className="py-8 sm:py-10 px-8 sm:px-12 border-b border-border-muted">
+            <h2
+              id="dialog-title"
+              className="text-text-primary font-semibold text-lg sm:text-xl"
+            >
+              {title}
+            </h2>
+          </div>
+
+          {/* Content */}
+          <div className="py-4 sm:py-6 px-8 sm:px-12 flex-grow">
+            <p className="text-text-secondary text-sm sm:text-base leading-relaxed">
+              {message}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="p-8 sm:p-10 flex justify-end gap-4">
+            <button
+              onClick={onClose}
+              className="min-w-[70px] sm:min-w-[80px] px-6 py-3 text-primary hover:bg-surface-highlight rounded-lg transition-colors text-xs sm:text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="min-w-[70px] sm:min-w-[80px] px-6 py-3 bg-danger text-text-primary hover:bg-danger rounded-lg transition-colors text-xs sm:text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <InlineSpinner size={18} />
+                  Deleting...
+                </span>
+              ) : (
+                "Confirm"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

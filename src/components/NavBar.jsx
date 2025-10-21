@@ -8,6 +8,7 @@ import {
   Menu,
   School,
   X,
+  TrendingUp,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import BillingDialog from "./Billing/BillingDialog";
@@ -30,6 +31,7 @@ const NavBar = () => {
   const navItems = useMemo(() => {
     const items = [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/progress", label: "Progress", icon: TrendingUp },
       { path: "/mydecks", label: "My Decks", icon: BookOpen },
       { path: "/study", label: "Study", icon: GraduationCap },
     ];
@@ -37,7 +39,7 @@ const NavBar = () => {
       items.push({ path: "/teacher", label: "Teacher", icon: School });
     }
     return items;
-  }, [hasRole, user?.role]);
+  }, [hasRole]);
 
   // Fetch billing status when dialog opens
   useEffect(() => {
@@ -47,7 +49,9 @@ const NavBar = () => {
         try {
           const s = await getBillingStatus();
           if (active) setBillingStatus(s);
-        } catch {}
+        } catch {
+          // ignore billing status fetch failures
+        }
       }
     })();
     return () => {
@@ -63,17 +67,42 @@ const NavBar = () => {
   }, []);
 
   const isActiveSub = billingStatus?.subscription_status === "active";
-  const remaining = billingStatus?.month_remaining ?? null;
+  const aiUsage = billingStatus?.usage?.ai_generation || {};
+  const remaining =
+    aiUsage.remaining ??
+    billingStatus?.month_remaining ??
+    billingStatus?.day_remaining ??
+    null;
+  const remainingPeriod = aiUsage.month_key
+    ? "this month"
+    : billingStatus?.month_remaining != null
+    ? "this month"
+    : billingStatus?.day_remaining != null
+    ? "today"
+    : null;
+  const upgradeLabel = "Upgrade";
+  const planIndicatorSource =
+    billingStatus?.plan ||
+    billingStatus?.plan_type ||
+    billingStatus?.subscription_plan ||
+    billingStatus?.usage?.plan ||
+    "";
+  const planIndicatorKey = planIndicatorSource
+    .toString()
+    .trim()
+    .toLowerCase();
+  const isDailyPlan =
+    planIndicatorKey.includes("daily") || planIndicatorKey === "day";
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800">
+      <header className="sticky top-0 z-50 bg-surface-elevated border-b border-border-muted backdrop-blur">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between px-4 py-3 gap-4">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 text-slate-300 hover:text-white transition-colors"
+              className="md:hidden p-2 text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -82,7 +111,7 @@ const NavBar = () => {
             {/* Logo */}
             <Link
               to="/dashboard"
-              className="flex items-center gap-2 text-white font-bold text-xl md:text-2xl no-underline hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-text-primary font-bold text-xl md:text-2xl no-underline hover:text-primary transition-colors"
             >
               <BookOpen size={24} />
               <span>Flashlearn</span>
@@ -99,8 +128,8 @@ const NavBar = () => {
                     to={item.path}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors no-underline ${
                       isActive
-                        ? "text-blue-400 font-semibold"
-                        : "text-slate-300 hover:text-white"
+                        ? "bg-primary-soft text-primary font-semibold"
+                        : "text-text-secondary hover:text-text-primary hover:bg-surface-highlight"
                     }`}
                   >
                     <Icon size={20} />
@@ -116,23 +145,30 @@ const NavBar = () => {
               {user && !isActiveSub && (
                 <button
                   onClick={() => setBillingOpen(true)}
-                  className="hidden md:block px-4 py-2 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500/10 transition-colors text-sm font-medium"
+                  className="hidden md:block px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary-soft transition-colors text-sm font-medium"
                 >
-                  Upgrade (KES 100)
+                  {upgradeLabel}
                 </button>
               )}
 
               {/* Free Prompts Remaining */}
+              {user && isActiveSub && (
+                <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">
+                  {isDailyPlan ? "⚡ Daily Pass" : "💎 Pro"}
+                </span>
+              )}
+
               {user && remaining != null && (
-                <span className="hidden md:block text-sm text-slate-400">
-                  Free left: <strong className="text-white">{remaining}</strong>
+                <span className="hidden md:block text-sm text-text-muted">
+                  Free left{remainingPeriod ? ` ${remainingPeriod}` : ""}:{" "}
+                  <strong className="text-text-primary">{remaining}</strong>
                 </span>
               )}
 
               {/* Profile Avatar */}
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="relative w-9 h-9 rounded-full bg-emerald-500 text-white font-bold text-sm flex items-center justify-center hover:bg-emerald-400 transition-colors"
+                className="relative w-9 h-9 rounded-full bg-accent text-accent-foreground font-bold text-sm flex items-center justify-center hover:bg-accent-emphasis transition-colors"
                 aria-label="User menu"
               >
                 {user?.username?.charAt(0).toUpperCase() || "U"}
@@ -142,7 +178,7 @@ const NavBar = () => {
               {user && (
                 <button
                   onClick={handleLogout}
-                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-danger text-text-primary rounded-lg hover:bg-danger transition-colors text-sm font-medium"
                 >
                   <LogOut size={18} />
                   <span>Sign Out</span>
@@ -152,10 +188,10 @@ const NavBar = () => {
 
             {/* Profile Dropdown Menu */}
             {menuOpen && (
-              <div className="absolute top-16 right-4 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-slate-700">
-                  <p className="text-xs text-slate-400">Signed in as</p>
-                  <p className="text-sm font-medium text-white mt-1">
+              <div className="absolute top-16 right-4 w-52 bg-surface-elevated border border-border-muted rounded-xl shadow-lg overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-border-muted">
+                  <p className="text-xs text-text-muted">Signed in as</p>
+                  <p className="text-sm font-medium text-text-primary mt-1">
                     {user?.username || "User"}
                   </p>
                 </div>
@@ -166,7 +202,7 @@ const NavBar = () => {
 
         {/* Mobile Navigation Drawer */}
         {mobileOpen && (
-          <div className="md:hidden bg-slate-800 border-t border-slate-700">
+          <div className="md:hidden bg-surface border-t border-border-muted">
             <nav className="px-4 py-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -178,8 +214,8 @@ const NavBar = () => {
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors no-underline ${
                       isActive
-                        ? "bg-blue-500/10 text-blue-400 font-semibold"
-                        : "text-slate-300 hover:bg-slate-700"
+                        ? "bg-primary-soft text-primary font-semibold"
+                        : "text-text-secondary hover:bg-surface-highlight"
                     }`}
                   >
                     <Icon size={18} />
@@ -195,10 +231,10 @@ const NavBar = () => {
                     setBillingOpen(true);
                     setMobileOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-400 hover:bg-slate-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-surface-highlight transition-colors"
                 >
                   <BookOpen size={18} />
-                  <span>Upgrade (KES 100)</span>
+                  <span>{upgradeLabel}</span>
                 </button>
               )}
 
@@ -209,7 +245,7 @@ const NavBar = () => {
                     handleLogout();
                     setMobileOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-danger hover:bg-danger-soft transition-colors"
                 >
                   <LogOut size={18} />
                   <span>Sign Out</span>
@@ -227,7 +263,9 @@ const NavBar = () => {
           setBillingOpen(false);
           getBillingStatus()
             .then(setBillingStatus)
-            .catch(() => {});
+            .catch(() => {
+              // ignore refresh errors after closing dialog
+            });
         }}
       />
     </>

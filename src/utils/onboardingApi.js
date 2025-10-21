@@ -1,5 +1,5 @@
 // src/utils/onboardingApi.js
-import apiClient from "./apiClient";
+import { onboardingApi as onboardingClient } from "./apiClient";
 
 /**
  * Expected backend payloads:
@@ -37,8 +37,8 @@ function normalizeCatalog(raw) {
  */
 export async function fetchCatalog({ signal } = {}) {
   try {
-    const res = await apiClient.get("/catalog", { signal });
-    return normalizeCatalog(res?.data);
+    const data = await onboardingClient.fetchCatalog({ signal });
+    return normalizeCatalog(data);
   } catch (err) {
     console.warn("fetchCatalog: backend error", err?.message || err);
     return []; // no local fallback
@@ -54,9 +54,9 @@ export async function assignStarterDecks(deckIds = []) {
   }
 
   try {
-    const resp = await apiClient.post("/catalog/seed", { deck_ids: deckIds });
-    const created = resp?.data?.created?.length ?? 0;
-    const errors = resp?.data?.errors ?? [];
+    const resp = await onboardingClient.seedCatalog({ deck_ids: deckIds });
+    const created = resp?.created?.length ?? 0;
+    const errors = resp?.errors ?? [];
     return { ok: created > 0, created, errors };
   } catch (err) {
     return {
@@ -72,12 +72,12 @@ export async function assignStarterDecks(deckIds = []) {
  */
 export async function fetchDeckCount() {
   try {
-    const resp = await apiClient.get("/decks?per_page=1");
+    const resp = await onboardingClient.fetchDeckCount();
     const total =
-      resp?.data?.pagination?.total_items ??
-      resp?.data?.total ??
-      resp?.data?.count ??
-      (Array.isArray(resp?.data) ? resp.data.length : 0);
+      resp?.pagination?.total_items ??
+      resp?.total ??
+      resp?.count ??
+      (Array.isArray(resp) ? resp.length : 0);
     return Number.isFinite(total) ? total : 0;
   } catch {
     return 0;

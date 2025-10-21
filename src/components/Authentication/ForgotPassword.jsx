@@ -99,20 +99,20 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center px-4 py-8">
+    <main className="min-h-screen bg-background text-text-primary flex items-center justify-center px-4 py-8">
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl shadow-xl">
+        <div className="bg-background-subtle/80 backdrop-blur border border-border-strong rounded-2xl shadow-xl">
           <div className="p-6 md:p-8">
             <header className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 Forgot Password
               </h1>
-              <p className="text-sm text-slate-300 mt-1">
+              <p className="text-sm text-text-secondary mt-1">
                 {step === 1
                   ? "Enter your email to receive a reset code."
                   : "Enter the code and your new password."}
@@ -124,7 +124,7 @@ export default function ForgotPassword() {
               {errorMsg ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-red-200"
+                  className="rounded-lg border border-danger/30 bg-danger-soft px-4 py-2 text-danger"
                 >
                   {errorMsg}
                 </div>
@@ -132,7 +132,7 @@ export default function ForgotPassword() {
               {successMsg ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-emerald-200"
+                  className="rounded-lg border border-success/30 bg-success-soft px-4 py-2 text-success"
                 >
                   {successMsg}
                 </div>
@@ -154,7 +154,7 @@ export default function ForgotPassword() {
                     <div className="mb-4">
                       <label
                         htmlFor="email"
-                        className="block text-sm font-medium text-slate-200 mb-1"
+                        className="block text-sm font-medium text-text-primary mb-1"
                       >
                         Email
                       </label>
@@ -163,16 +163,16 @@ export default function ForgotPassword() {
                         name="email"
                         type="email"
                         autoComplete="email"
-                        className={`w-full rounded-lg bg-slate-800 border px-3 py-2 outline-none placeholder:text-slate-400
+                        className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted
                           ${
                             touched.email && errors.email
-                              ? "border-red-500/60"
-                              : "border-slate-700 focus:border-slate-500"
+                              ? "border-danger/60"
+                              : "border-border-muted focus:border-border-muted"
                           }`}
                         placeholder="you@example.com"
                       />
                       {touched.email && errors.email ? (
-                        <p className="mt-1 text-xs text-red-300">
+                        <p className="mt-1 text-xs text-danger">
                           {errors.email}
                         </p>
                       ) : null}
@@ -183,16 +183,16 @@ export default function ForgotPassword() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={sending || isSubmitting}
-                      className="w-full rounded-lg px-4 py-2 font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-lg px-4 py-2 font-medium bg-primary hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {sending || isSubmitting ? "Sending..." : "Send code"}
                     </motion.button>
 
-                    <p className="text-center text-sm text-slate-300 mt-3">
+                    <p className="text-center text-sm text-text-secondary mt-3">
                       Remembered your password?{" "}
                       <Link
                         to="/login"
-                        className="text-blue-400 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         Go to login
                       </Link>
@@ -228,7 +228,7 @@ export default function ForgotPassword() {
                     <div className="mb-3">
                       <label
                         htmlFor="email-locked"
-                        className="block text-sm font-medium text-slate-200 mb-1"
+                        className="block text-sm font-medium text-text-primary mb-1"
                       >
                         Email
                       </label>
@@ -237,14 +237,14 @@ export default function ForgotPassword() {
                         type="email"
                         value={emailLocked}
                         disabled
-                        className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-slate-300"
+                        className="w-full rounded-lg bg-surface-elevated border border-border-muted px-3 py-2 text-text-secondary"
                       />
                     </div>
 
                     <div className="mb-3">
                       <label
                         htmlFor="otpCode"
-                        className="block text-sm font-medium text-slate-200 mb-1"
+                        className="block text-sm font-medium text-text-primary mb-1"
                       >
                         Reset code
                       </label>
@@ -254,16 +254,16 @@ export default function ForgotPassword() {
                         value={values.otpCode}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        className={`w-full rounded-lg bg-slate-800 border px-3 py-2 outline-none placeholder:text-slate-400
+                        className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted
                           ${
                             touched.otpCode && errors.otpCode
-                              ? "border-red-500/60"
-                              : "border-slate-700 focus:border-slate-500"
+                              ? "border-danger/60"
+                              : "border-border-muted focus:border-border-muted"
                           }`}
                         placeholder="Enter the code"
                       />
                       {touched.otpCode && errors.otpCode ? (
-                        <p className="mt-1 text-xs text-red-300">
+                        <p className="mt-1 text-xs text-danger">
                           {errors.otpCode}
                         </p>
                       ) : null}
@@ -282,7 +282,7 @@ export default function ForgotPassword() {
                     <div className="mb-3">
                       <label
                         htmlFor="newPassword"
-                        className="block text-sm font-medium text-slate-200 mb-1"
+                        className="block text-sm font-medium text-text-primary mb-1"
                       >
                         New password
                       </label>
@@ -293,16 +293,16 @@ export default function ForgotPassword() {
                         value={values.newPassword}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        className={`w-full rounded-lg bg-slate-800 border px-3 py-2 outline-none placeholder:text-slate-400
+                        className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted
                           ${
                             touched.newPassword && errors.newPassword
-                              ? "border-red-500/60"
-                              : "border-slate-700 focus:border-slate-500"
+                              ? "border-danger/60"
+                              : "border-border-muted focus:border-border-muted"
                           }`}
                         placeholder="••••••••"
                       />
                       {touched.newPassword && errors.newPassword ? (
-                        <p className="mt-1 text-xs text-red-300">
+                        <p className="mt-1 text-xs text-danger">
                           {errors.newPassword}
                         </p>
                       ) : null}
@@ -311,7 +311,7 @@ export default function ForgotPassword() {
                     <div className="mb-4">
                       <label
                         htmlFor="confirmPassword"
-                        className="block text-sm font-medium text-slate-200 mb-1"
+                        className="block text-sm font-medium text-text-primary mb-1"
                       >
                         Confirm password
                       </label>
@@ -322,16 +322,16 @@ export default function ForgotPassword() {
                         value={values.confirmPassword}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        className={`w-full rounded-lg bg-slate-800 border px-3 py-2 outline-none placeholder:text-slate-400
+                        className={`w-full rounded-lg bg-surface-elevated border px-3 py-2 outline-none placeholder:text-text-muted
                           ${
                             touched.confirmPassword && errors.confirmPassword
-                              ? "border-red-500/60"
-                              : "border-slate-700 focus:border-slate-500"
+                              ? "border-danger/60"
+                              : "border-border-muted focus:border-border-muted"
                           }`}
                         placeholder="••••••••"
                       />
                       {touched.confirmPassword && errors.confirmPassword ? (
-                        <p className="mt-1 text-xs text-red-300">
+                        <p className="mt-1 text-xs text-danger">
                           {errors.confirmPassword}
                         </p>
                       ) : null}
@@ -342,7 +342,7 @@ export default function ForgotPassword() {
                         type="button"
                         onClick={handleResend}
                         disabled={resending}
-                        className="text-sm px-3 py-2 rounded-lg border border-slate-700 hover:border-slate-500 disabled:opacity-50"
+                        className="text-sm px-3 py-2 rounded-lg border border-border-muted hover:border-border-muted disabled:opacity-50"
                       >
                         {resending ? "Resending..." : "Resend code"}
                       </button>
@@ -355,7 +355,7 @@ export default function ForgotPassword() {
                           setSuccessMsg("");
                           setErrorMsg("");
                         }}
-                        className="text-sm px-3 py-2 rounded-lg border border-slate-700 hover:border-slate-500"
+                        className="text-sm px-3 py-2 rounded-lg border border-border-muted hover:border-border-muted"
                       >
                         Use a different email
                       </button>
@@ -366,18 +366,18 @@ export default function ForgotPassword() {
                       whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={resetting || isSubmitting}
-                      className="w-full rounded-lg px-4 py-2 font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-lg px-4 py-2 font-medium bg-primary hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {resetting || isSubmitting
                         ? "Resetting..."
                         : "Verify & reset"}
                     </motion.button>
 
-                    <p className="text-center text-sm text-slate-300 mt-3">
+                    <p className="text-center text-sm text-text-secondary mt-3">
                       Back to{" "}
                       <Link
                         to="/login"
-                        className="text-blue-400 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         login
                       </Link>

@@ -1,7 +1,4 @@
-// src/pages/Homepage.jsx  (recommended new location)
-// (If you’re not ready to move it yet, keep the current path and just replace the contents.)
-
-import { Box, Container, Divider } from "@mui/material";
+// src/pages/Homepage.jsx
 import Navbar from "../components/homepageComponents/Navbar";
 import HeroSection from "../components/homepageComponents/HeroSection";
 import FeaturesSection from "../components/homepageComponents/FeaturesSection";
@@ -11,30 +8,23 @@ import Footer from "../components/homepageComponents/Footer";
 
 export default function Homepage() {
   return (
-    <Box
-      component="main"
-      sx={{
-        bgcolor: "background.default",
-        minHeight: "100dvh",
-        transition: "background-color 0.3s ease",
-      }}
-    >
+    <main className="min-h-dvh bg-background text-text-primary transition-colors">
       <Navbar />
 
-      {/* Keep prop for now; we’ll remove it in a later pass */}
-      <HeroSection isDarkMode />
+      {/* Dark-only app: no theme props */}
+      <HeroSection />
 
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <FeaturesSection />
 
-        <Divider sx={{ my: { xs: 6, md: 8 } }} />
+        <hr className="my-6 md:my-8 border-border-strong" />
 
         <ProgressStatsSection />
 
         <PersonalizedLearningSection />
-      </Container>
+      </div>
 
-      <Footer isDarkMode />
-    </Box>
+      <Footer />
+    </main>
   );
 }
