@@ -1,21 +1,11 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deckApi } from "../utils/apiClient";
 import { handleApiError } from "../services/errorHandler";
 import { getToken } from "../utils/authToken";
-
-const DecksContext = createContext(null);
+import { FIVE_MINUTES, MAX_RETRY_ATTEMPTS } from "../utils/cache/cacheHelpers";
+import { DecksContext } from "../hooks/useDecksContext";
 
 const DEFAULT_PARAMS = { page: 1, per_page: 1000 };
-const FIVE_MINUTES = 5 * 60 * 1000;
-const MAX_RETRY_ATTEMPTS = 3;
 
 const normalizeDeckResponse = (data) => {
   if (!data) {
@@ -361,12 +351,4 @@ export const DecksProvider = ({ children }) => {
   return (
     <DecksContext.Provider value={value}>{children}</DecksContext.Provider>
   );
-};
-
-export const useDecksContext = () => {
-  const context = useContext(DecksContext);
-  if (!context) {
-    throw new Error("useDecksContext must be used within a DecksProvider");
-  }
-  return context;
 };

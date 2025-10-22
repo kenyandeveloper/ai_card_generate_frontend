@@ -7,7 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import { useUser } from "./components/context/UserContext";
+import { useUser } from "./hooks/useUser";
 import DashboardLayout from "./components/Dashboard/DashboardLayout";
 import {
   ErrorSnackbar,

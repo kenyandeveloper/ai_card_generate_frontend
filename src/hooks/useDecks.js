@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useDecksContext } from "../contexts/DecksContext";
+import { useDecksContext } from "../hooks/useDecksContext";
 import { getToken } from "../utils/authToken";
 
 export const useDecks = (options = {}) => {

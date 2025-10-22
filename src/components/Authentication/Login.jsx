@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { motion } from "framer-motion";

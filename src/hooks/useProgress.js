@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useProgressContext } from "../contexts/ProgressContext.jsx";
+import { useProgressContext } from "../hooks/useProgressContext";
 import { getToken } from "../utils/authToken";
 
 export const useProgress = (deckId = null, skipFetch = false) => {

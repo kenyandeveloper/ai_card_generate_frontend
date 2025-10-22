@@ -1,6 +1,6 @@
 // src/components/Dashboard/DashboardLayout.jsx
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import NavBar from "../NavBar";
 import MetaStrip from "../common/MetaStrip";
 

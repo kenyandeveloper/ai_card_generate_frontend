@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Menu, X, Flame } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 
 function StreakPill() {
   const { user } = useUser?.() || {};

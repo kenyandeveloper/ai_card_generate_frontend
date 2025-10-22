@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp } from "lucide-react";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 
 const WelcomeSection = ({ username }) => {
   const { user } = useUser?.() || {};

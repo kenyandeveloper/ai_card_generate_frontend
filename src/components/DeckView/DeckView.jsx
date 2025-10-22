@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import NavBar from "../NavBar";
 import DeckHeader from "./DeckHeader";
 import FlashcardList from "./FlashCardList";

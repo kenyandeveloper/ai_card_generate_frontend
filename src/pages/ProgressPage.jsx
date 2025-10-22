@@ -4,7 +4,7 @@ import DashboardLayout from "../components/Dashboard/DashboardLayout";
 import { DataFetchWrapper } from "../components/common/DataFetchWrapper";
 import ProgressOverview from "../components/Progress/ProgressOverview";
 import { useDashboardStats, useProgress } from "../hooks/useProgress";
-import { useUser } from "../components/context/UserContext";
+import { useUser } from "../hooks/useUser";
 
 const ProgressPage = () => {
   const navigate = useNavigate();

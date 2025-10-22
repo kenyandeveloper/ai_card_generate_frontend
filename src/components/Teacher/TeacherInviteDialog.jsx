@@ -1,7 +1,7 @@
 // src/components/TeacherInviteDialog.jsx
 import { useEffect, useRef, useState } from "react";
 import { teacherApi, authApi } from "../../utils/apiClient";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 
 export default function TeacherInviteDialog({

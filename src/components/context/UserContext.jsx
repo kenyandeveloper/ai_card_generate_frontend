@@ -1,12 +1,11 @@
-import { createContext, useState, useContext, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   getToken,
   setToken as writeToken,
   clearToken,
 } from "../../utils/authToken";
 import { authApi } from "../../utils/apiClient";
-
-const UserContext = createContext();
+import { UserContext } from "../../hooks/useUser";
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -147,5 +146,3 @@ export const UserProvider = ({ children }) => {
     </UserContext.Provider>
   );
 };
-
-export const useUser = () => useContext(UserContext);

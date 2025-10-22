@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Flame, Star, Flag, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 
 export default function MetaStrip({
   showStreak = true,

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 
 const benefits = [
   "Create custom flashcards tailored to your specific needs",

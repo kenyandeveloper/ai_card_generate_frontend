@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import ProgressStats from "./ProgressStats";
 
 export default function ProgressStatsSection() {

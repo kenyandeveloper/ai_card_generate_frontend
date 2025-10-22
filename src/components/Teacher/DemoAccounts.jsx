@@ -8,7 +8,7 @@ import {
   disableDemoAccount,
   redeemTeacherCode,
 } from "../../utils/teacherApi";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import TeacherInviteDialog from "./TeacherInviteDialog";
 import { createTeacherInvite } from "../../utils/adminApi";
 

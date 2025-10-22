@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import NavBar from "../NavBar";
 import StudyContent from "./StudyContent";
 import StudySkeleton from "./StudySkeleton";

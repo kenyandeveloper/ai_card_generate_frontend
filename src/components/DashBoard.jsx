@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "./context/UserContext";
+import { useUser } from "../hooks/useUser";
 import { useTheme, useMediaQuery } from "@mui/material";
 import DashboardLayout from "./Dashboard/DashboardLayout";
 import DashboardContent from "./Dashboard/DashboardContent";

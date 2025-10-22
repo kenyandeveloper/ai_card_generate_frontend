@@ -8,7 +8,7 @@ import {
   fetchDeckCount,
   fetchCatalog,
 } from "../utils/onboardingApi";
-import { useUser } from "../components/context/UserContext";
+import { useUser } from "../hooks/useUser";
 import NavBar from "../components/NavBar";
 import { motion } from "framer-motion";
 

@@ -1,28 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { progressApi, dashboardApi } from "../utils/apiClient";
 import { handleApiError } from "../services/errorHandler";
 import { getToken } from "../utils/authToken";
-
-const FIVE_MINUTES = 5 * 60 * 1000;
-const MAX_RETRY_ATTEMPTS = 3;
-
-const ProgressContext = createContext(null);
-
-export const useProgressContext = () => {
-  const context = useContext(ProgressContext);
-  if (!context) {
-    throw new Error("useProgressContext must be used within ProgressProvider");
-  }
-  return context;
-};
+import { FIVE_MINUTES, MAX_RETRY_ATTEMPTS } from "../utils/cache/cacheHelpers";
+import { ProgressContext } from "../hooks/useProgressContext";
 
 export const ProgressProvider = ({ children }) => {
   const [progressByDeck, setProgressByDeck] = useState({});
@@ -80,14 +61,11 @@ export const ProgressProvider = ({ children }) => {
     });
   }, []);
 
-  const isFresh = useCallback(
-    (key) => {
-      const timestamp = cacheTimestampRef.current[key];
-      if (!timestamp) return false;
-      return Date.now() - timestamp < FIVE_MINUTES;
-    },
-    []
-  );
+  const isFresh = useCallback((key) => {
+    const timestamp = cacheTimestampRef.current[key];
+    if (!timestamp) return false;
+    return Date.now() - timestamp < FIVE_MINUTES;
+  }, []);
 
   useEffect(() => {
     progressByDeckRef.current = progressByDeck;
@@ -521,13 +499,10 @@ export const ProgressProvider = ({ children }) => {
     fetchInProgressRef.current = {};
   }, []);
 
-  const getCachedProgress = useCallback(
-    (deckId) => {
-      if (!deckId) return null;
-      return progressByDeckRef.current[String(deckId)] ?? null;
-    },
-    []
-  );
+  const getCachedProgress = useCallback((deckId) => {
+    if (!deckId) return null;
+    return progressByDeckRef.current[String(deckId)] ?? null;
+  }, []);
 
   const isProgressFresh = useCallback(
     (deckId) => {
