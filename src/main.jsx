@@ -5,15 +5,18 @@ import App from "./App.jsx";
 import { UserProvider } from "./components/context/UserContext.jsx";
 import { DecksProvider } from "./contexts/DecksContext.jsx";
 import { ProgressProvider } from "./contexts/ProgressContext.jsx";
+import { BillingProvider } from "./contexts/BillingContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <UserProvider>
-      <DecksProvider>
-        <ProgressProvider>
-          <App />
-        </ProgressProvider>
-      </DecksProvider>
+      <BillingProvider>
+        <DecksProvider>
+          <ProgressProvider>
+            <App />
+          </ProgressProvider>
+        </DecksProvider>
+      </BillingProvider>
     </UserProvider>
   </StrictMode>
 );

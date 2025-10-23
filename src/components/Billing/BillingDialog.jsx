@@ -1,11 +1,8 @@
 // src/components/Billing/BillingDialog.jsx
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Loader, AlertCircle, X } from "lucide-react";
-import {
-  createCheckout,
-  getBillingStatus,
-  verifyPayment,
-} from "../../utils/billingApi";
+import { createCheckout, verifyPayment } from "../../utils/billingApi";
+import { useBilling } from "../../contexts/BillingContext.jsx";
 
 const LAST_CHECKOUT_KEY = "flashlearn:last_checkout_id";
 
@@ -14,24 +11,36 @@ const PLAN_OPTIONS = [
     value: "daily",
     label: "Daily Pass",
     priceText: "KES 30",
-    billingPeriod: "day",
+    apiPlan: "daily",
+    billingPeriod: "24 hours",
     description: "Unlock all premium features for 24 hours - perfect for exam prep sprints.",
     durationCopy: "24-hour access",
+    features: ["100 AI generations", "Valid for 24 hours"],
   },
   {
     value: "monthly",
     label: "Monthly Pro",
     priceText: "KES 100",
+    apiPlan: "monthly",
     billingPeriod: "month",
     description: "Unlimited AI generation, quizzes, and analytics for the entire month.",
     durationCopy: "30-day access",
     badge: "Most popular",
     default: true,
+    features: ["100 AI generations per month", "Auto-renews monthly"],
   },
 ];
 
 const DEFAULT_PLAN_VALUE =
   PLAN_OPTIONS.find((plan) => plan.default)?.value || PLAN_OPTIONS[0].value;
+
+const PLAN_TYPE_TO_VALUE = PLAN_OPTIONS.reduce((acc, option) => {
+  if (option.apiPlan) {
+    acc[option.apiPlan] = option.value;
+  }
+  acc[option.value] = option.value;
+  return acc;
+}, {});
 
 const normalizePlanSlug = (value) => {
   if (value == null) return "";
@@ -142,6 +151,75 @@ const formatTimeRemaining = (value) => {
   return `~${minutes}m left`;
 };
 
+const getPlanDisplay = (billingStatus) => {
+  if (!billingStatus) return null;
+
+  const planTypeSource =
+    billingStatus.plan_type ||
+    billingStatus.plan ||
+    billingStatus.plan_name ||
+    billingStatus.subscription_plan ||
+    billingStatus.usage?.plan_type ||
+    billingStatus.usage?.plan ||
+    null;
+
+  if (planTypeSource) {
+    const key = planTypeSource.toString().trim().toLowerCase();
+    const mappedValue =
+      PLAN_TYPE_TO_VALUE[key] ||
+      normalizePlanSlug(key) ||
+      PLAN_OPTIONS.find((option) => option.apiPlan === key)?.value ||
+      null;
+
+    if (mappedValue) {
+      const matchedPlan = PLAN_OPTIONS.find(
+        (option) => option.value === mappedValue
+      );
+      if (matchedPlan) {
+        return {
+          label: matchedPlan.label,
+          price: matchedPlan.priceText,
+          period: matchedPlan.billingPeriod,
+        };
+      }
+    }
+  }
+
+  const amount = billingStatus.amount || billingStatus.total_amount || null;
+  const currency = billingStatus.currency || "KES";
+
+  return {
+    label:
+      billingStatus.plan_label ||
+      billingStatus.plan_name ||
+      billingStatus.subscription_plan ||
+      "Premium",
+    price: amount ? `${currency} ${amount}` : "KES 100",
+    period: billingStatus.billing_period || "month",
+  };
+};
+
+const getExpiryText = (endDate, isDailyPlan) => {
+  if (!endDate) return "";
+  const end = new Date(endDate);
+  if (Number.isNaN(end.getTime())) return "";
+
+  const now = new Date();
+  const diffMs = end.getTime() - now.getTime();
+  if (diffMs <= 0) return "Expired";
+
+  if (isDailyPlan) {
+    const hoursLeft = Math.ceil(diffMs / (1000 * 60 * 60));
+    return `Expires in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}`;
+  }
+
+  return `Renews: ${end.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })}`;
+};
+
 export default function BillingDialog({ open, onClose }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -151,10 +229,12 @@ export default function BillingDialog({ open, onClose }) {
   const pollTimer = useRef(null);
   const [selectedPlan, setSelectedPlan] = useState(DEFAULT_PLAN_VALUE);
   const [manualPlanSelection, setManualPlanSelection] = useState(false);
+  const { refresh: refreshBilling } = useBilling();
+  const selectedPlanRef = useRef(DEFAULT_PLAN_VALUE);
 
   const refresh = useCallback(async () => {
     try {
-      const s = await getBillingStatus();
+      const s = await refreshBilling();
       setStatus(s);
       if (s?.subscription_status === "active") {
         try {
@@ -166,12 +246,13 @@ export default function BillingDialog({ open, onClose }) {
     } catch (err) {
       console.error("Failed to fetch billing status:", err);
     }
-  }, []);
+  }, [refreshBilling]);
 
   useEffect(() => {
     if (!open) {
       setSelectedPlan(DEFAULT_PLAN_VALUE);
       setManualPlanSelection(false);
+      selectedPlanRef.current = DEFAULT_PLAN_VALUE;
     }
   }, [open]);
 
@@ -180,6 +261,7 @@ export default function BillingDialog({ open, onClose }) {
     const derived = derivePlanFromStatus(status);
     if (derived) {
       setSelectedPlan(derived);
+      selectedPlanRef.current = derived;
     }
   }, [open, manualPlanSelection, status]);
 
@@ -212,7 +294,12 @@ export default function BillingDialog({ open, onClose }) {
     try {
       setLoading(true);
       setError("");
-      const res = await createCheckout({ plan_type: selectedPlan });
+      const planValue = selectedPlanRef.current || selectedPlan;
+      const selection =
+        PLAN_OPTIONS.find((plan) => plan.value === planValue) || selectedPlanMeta;
+      const planToSend =
+        selection?.apiPlan || selection?.value || planValue;
+      const res = await createCheckout({ plan_type: planToSend });
       if (!res?.checkout_url) throw new Error("No checkout URL returned");
 
       try {
@@ -247,9 +334,8 @@ export default function BillingDialog({ open, onClose }) {
   };
 
   const active = status?.subscription_status === "active";
+  const planInfo = active ? getPlanDisplay(status) : null;
   const currentPlanValue = derivePlanFromStatus(status);
-  const currentPlanOption =
-    PLAN_OPTIONS.find((plan) => plan.value === currentPlanValue) || null;
   const planLabelFromStatus =
     status?.plan_label ||
     status?.plan_name ||
@@ -261,11 +347,6 @@ export default function BillingDialog({ open, onClose }) {
     normalizePlanSlug(planLabelFromStatus) ||
     normalizePlanSlug(status?.plan_type);
   const isDailyPlan = normalizedPlanKey === "daily";
-  const planDisplay = active
-    ? currentPlanOption
-      ? `${currentPlanOption.label} (${currentPlanOption.priceText}/${currentPlanOption.billingPeriod})`
-      : planLabelFromStatus
-    : "Free tier";
   const periodLabel = isDailyPlan ? "Expires" : "Renews";
   const aiUsage = status?.usage?.ai_generation || {};
   const quizUsage = status?.usage?.quizzes || {};
@@ -303,6 +384,9 @@ export default function BillingDialog({ open, onClose }) {
     null;
   const periodEndLabel = formatDateTime(periodEndRaw);
   const remainingCopy = isDailyPlan ? formatTimeRemaining(periodEndRaw) : "";
+  const expiryCopy = active
+    ? getExpiryText(periodEndRaw, normalizedPlanKey === "daily")
+    : "";
   const benefits = active
     ? [
         {
@@ -334,6 +418,13 @@ export default function BillingDialog({ open, onClose }) {
         { icon: "💡", text: "Personalized study recommendations" },
       ];
 
+  const handleClose = useCallback(() => {
+    onClose?.();
+    Promise.resolve(refresh()).catch(() => {
+      // ignore refresh errors triggered while closing
+    });
+  }, [refresh, onClose]);
+
   if (!open) return null;
 
   return (
@@ -341,7 +432,7 @@ export default function BillingDialog({ open, onClose }) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-background-overlay"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -364,7 +455,7 @@ export default function BillingDialog({ open, onClose }) {
               </h2>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 aria-label="Close billing dialog"
                 className="rounded-lg p-1.5 text-text-muted hover:bg-surface-highlight transition-colors"
               >
@@ -417,6 +508,7 @@ export default function BillingDialog({ open, onClose }) {
                           checked={isSelected}
                           onChange={() => {
                             setSelectedPlan(option.value);
+                            selectedPlanRef.current = option.value;
                             setManualPlanSelection(true);
                           }}
                           className="sr-only"
@@ -481,7 +573,9 @@ export default function BillingDialog({ open, onClose }) {
             <div className="text-sm text-text-muted">
               Plan:{" "}
               <span className="font-semibold text-text-primary">
-                {planDisplay}
+                {planInfo
+                  ? `${planInfo.label} (${planInfo.price}/${planInfo.period})`
+                  : "Free tier"}
               </span>
             </div>
 
@@ -522,12 +616,14 @@ export default function BillingDialog({ open, onClose }) {
 
             {periodEndRaw && (
               <div className="text-xs text-text-subtle">
-                {periodLabel}: {periodEndLabel}
-                {remainingCopy && remainingCopy !== "expired" && (
-                  <span className="ml-1 text-text-muted">
-                    ({remainingCopy})
-                  </span>
-                )}
+                {expiryCopy || `${periodLabel}: ${periodEndLabel}`}
+                {remainingCopy &&
+                  remainingCopy !== "expired" &&
+                  !expiryCopy && (
+                    <span className="ml-1 text-text-muted">
+                      ({remainingCopy})
+                    </span>
+                  )}
               </div>
             )}
 
@@ -550,7 +646,7 @@ export default function BillingDialog({ open, onClose }) {
                   </button>
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="w-full py-3 px-4 rounded-lg border border-border-muted text-text-primary transition-colors duration-200 hover:bg-surface-highlight"
                   >
                     Cancel
@@ -603,7 +699,7 @@ export default function BillingDialog({ open, onClose }) {
           {/* Actions */}
           <div className="px-6 py-4 border-t border-border-muted flex justify-end">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-text-muted hover:text-text-primary font-medium transition-colors duration-200"
             >
               Close

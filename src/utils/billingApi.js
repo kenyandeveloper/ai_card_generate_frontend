@@ -9,20 +9,34 @@ import { billingApi as billingClient } from "./apiClient";
  */
 export async function createCheckout(payload = {}) {
   const defaultRedirect = `${window.location.origin.replace(/\/+$/, "")}/billing/return`;
+  const filteredPayload = Object.fromEntries(
+    Object.entries(payload || {}).filter(
+      ([key]) => key !== "plan" && key !== "planType" && key !== "plan_type"
+    )
+  );
+
+  const planSlugMap = {
+    daily: "daily",
+    daily_pass: "daily",
+    "daily-pass": "daily",
+    monthly: "monthly",
+    monthly_pro: "monthly",
+    "monthly-pro": "monthly",
+  };
+
   const rawPlan =
     payload.plan_type || payload.plan || payload.planType || "monthly";
-  const planType = String(rawPlan).trim().toLowerCase();
-  const validPlan = ["daily", "monthly"].includes(planType) ? planType : "monthly";
+  const planKey = String(rawPlan).trim().toLowerCase();
+  const plan_type = planSlugMap[planKey] || "monthly";
+
   const body = {
-    ...Object.fromEntries(
-      Object.entries(payload || {}).filter(
-        ([key]) =>
-          key !== "plan" && key !== "planType" && key !== "plan_type"
-      )
-    ),
+    ...filteredPayload,
     redirect_url: payload.redirect_url || defaultRedirect,
-    plan_type: validPlan,
+    plan_type,
   };
+
+  // Helpful during debugging — remove if backend logging covers this.
+  console.log("[createCheckout] Sending to backend:", { plan_type });
 
   const data = await billingClient.createCheckout(body);
 

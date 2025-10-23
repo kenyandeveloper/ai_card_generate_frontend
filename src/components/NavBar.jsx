@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import BillingDialog from "./Billing/BillingDialog";
-import { getBillingStatus } from "../utils/billingApi";
+import { useBilling } from "../contexts/BillingContext.jsx";
 
 const NavBar = () => {
   const { user, logout, hasRole } = useUser();
@@ -21,7 +21,8 @@ const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
-  const [billingStatus, setBillingStatus] = useState(null);
+  const { billingStatus, isActive: hasActiveSubscription, refresh: refreshBilling } =
+    useBilling();
 
   const handleLogout = async () => {
     await logout();
@@ -41,23 +42,14 @@ const NavBar = () => {
     return items;
   }, [hasRole]);
 
-  // Fetch billing status when dialog opens
+  // Refresh billing status when dialog opens
   useEffect(() => {
-    let active = true;
-    (async () => {
-      if (user && billingOpen) {
-        try {
-          const s = await getBillingStatus();
-          if (active) setBillingStatus(s);
-        } catch {
-          // ignore billing status fetch failures
-        }
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [user, billingOpen]);
+    if (user && billingOpen) {
+      refreshBilling().catch(() => {
+        // ignore refresh errors — dialog handles retries
+      });
+    }
+  }, [user, billingOpen, refreshBilling]);
 
   // Event bus for opening billing dialog
   useEffect(() => {
@@ -66,7 +58,7 @@ const NavBar = () => {
     return () => window.removeEventListener("open-billing", openHandler);
   }, []);
 
-  const isActiveSub = billingStatus?.subscription_status === "active";
+  const isActiveSub = hasActiveSubscription;
   const aiUsage = billingStatus?.usage?.ai_generation || {};
   const remaining =
     aiUsage.remaining ??
@@ -91,8 +83,9 @@ const NavBar = () => {
     .toString()
     .trim()
     .toLowerCase();
-  const isDailyPlan =
-    planIndicatorKey.includes("daily") || planIndicatorKey === "day";
+  const isDailyPlan = ["daily", "day", "daily_pass"].some((token) =>
+    planIndicatorKey.includes(token)
+  );
 
   return (
     <>
@@ -261,11 +254,6 @@ const NavBar = () => {
         open={billingOpen}
         onClose={() => {
           setBillingOpen(false);
-          getBillingStatus()
-            .then(setBillingStatus)
-            .catch(() => {
-              // ignore refresh errors after closing dialog
-            });
         }}
       />
     </>

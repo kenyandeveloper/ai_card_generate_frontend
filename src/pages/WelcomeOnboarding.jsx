@@ -65,38 +65,57 @@ export default function WelcomeOnboarding() {
   useEffect(() => {
     if (hasCheckedDeckCountRef.current) return;
 
-    let mounted = true;
-    (async () => {
+    let cancelled = false;
+    const run = async () => {
       if (userLoading) return;
       if (!isAuthenticated) {
         navigate("/login");
         return;
       }
+      try {
+        const count = await fetchDeckCount();
+        if (cancelled) return;
+        if (count > 0) navigate("/dashboard");
+        else setChecking(false);
+      } catch (err) {
+        if (!cancelled) setChecking(false);
+        console.warn("[WelcomeOnboarding] deck count failed:", err);
+      } finally {
+        hasCheckedDeckCountRef.current = true;
+      }
+    };
 
-      hasCheckedDeckCountRef.current = true;
-      const count = await fetchDeckCount();
-      if (!mounted) return;
-      if (count > 0) navigate("/dashboard");
-      else setChecking(false);
-    })();
-
+    run();
     return () => {
-      mounted = false;
+      cancelled = true;
     };
   }, [isAuthenticated, userLoading, navigate]);
 
   // load catalog
   useEffect(() => {
-    let mounted = true;
+    setLoadingCatalog(true);
+    let cancelled = false;
     const controller = new AbortController();
-    (async () => {
-      const data = await fetchCatalog({ signal: controller.signal });
-      if (!mounted) return;
-      setCatalog(Array.isArray(data) ? data : []);
-      setLoadingCatalog(false);
-    })();
+
+    const load = async () => {
+      try {
+        const data = await fetchCatalog({ signal: controller.signal });
+        if (!cancelled) {
+          setCatalog(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn("[WelcomeOnboarding] catalog load failed:", err);
+          setCatalog([]);
+        }
+      } finally {
+        if (!cancelled) setLoadingCatalog(false);
+      }
+    };
+
+    load();
     return () => {
-      mounted = false;
+      cancelled = true;
       controller.abort();
     };
   }, []);
