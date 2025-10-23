@@ -1,12 +1,7 @@
-// src/components/common/MetaStrip.jsx
-"use client";
-import { useEffect, useMemo, useState } from "react";
-import { Paper, Chip, Stack, Box, Tooltip, Fade } from "@mui/material";
-import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
-import AlarmRoundedIcon from "@mui/icons-material/AlarmRounded";
-import { useUser } from "../context/UserContext"; // adjust path if needed
+import { useEffect, useState } from "react";
+import { Flame, Star, Flag, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "../../hooks/useUser";
 
 export default function MetaStrip({
   showStreak = true,
@@ -14,7 +9,6 @@ export default function MetaStrip({
   showWeeklyGoal = true,
   showDue = false,
   dueCount = 0,
-  // NEW: ephemeral controls
   ephemeral = false,
   ephemeralMs = 1200,
 }) {
@@ -25,16 +19,7 @@ export default function MetaStrip({
   const weeklyTarget = user?.weeklyGoal?.targetDays ?? 3;
   const weeklyProgress = user?.weeklyGoal?.completedDays ?? 1;
 
-  // show-then-hide state
   const [visible, setVisible] = useState(true);
-
-  // respect reduced motion: no fade, but still hide after timeout
-  const prefersReducedMotion = useMemo(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches,
-    []
-  );
 
   useEffect(() => {
     if (!ephemeral) return;
@@ -42,73 +27,77 @@ export default function MetaStrip({
     return () => clearTimeout(t);
   }, [ephemeral, ephemeralMs]);
 
-  const content = (
-    <Paper
-      elevation={0}
-      sx={{
-        px: 1.5,
-        py: 1,
-        mb: { xs: 2, md: 2.5 },
-        border: 0,
-        bgcolor: "transparent",
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        flexWrap: "wrap",
-        borderBottom: (theme) => `1px solid ${theme.palette.divider}`, // keep it lightweight
-      }}
-      aria-hidden={!visible}
+  const Badge = ({
+    icon: Icon,
+    label,
+    color = "bg-surface-highlight",
+    iconColor = "text-text-secondary",
+  }) => (
+    <div
+      className={`flex items-center gap-2 px-3 py-1.5 ${color} rounded-lg border border-border-muted/60`}
     >
-      <Stack direction="row" spacing={1} sx={{ flexGrow: 1, flexWrap: "wrap" }}>
-        {showStreak && (
-          <Chip
-            icon={<WhatshotRoundedIcon color="warning" />}
-            label={`Day ${streak} streak`}
-            sx={{ bgcolor: "action.selected" }}
-            size="small"
-          />
-        )}
-        {showXP && (
-          <Chip
-            icon={<StarRoundedIcon />}
-            label={`${xp}/${nextLevelXp} XP`}
-            sx={{ bgcolor: "action.hover" }}
-            size="small"
-          />
-        )}
-        {showWeeklyGoal && (
-          <Chip
-            icon={<FlagRoundedIcon />}
-            label={`${weeklyProgress}/${weeklyTarget} days this week`}
-            sx={{ bgcolor: "action.hover" }}
-            size="small"
-          />
-        )}
-        {showDue && (
-          <Tooltip title="Cards due for review (spaced repetition)">
-            <Chip
-              icon={<AlarmRoundedIcon />}
-              label={`${dueCount} due`}
-              sx={{ bgcolor: "action.hover" }}
-              size="small"
-            />
-          </Tooltip>
-        )}
-      </Stack>
-
-      {/* CTA removed intentionally */}
-      <Box sx={{ ml: "auto" }} />
-    </Paper>
+      <Icon size={16} className={iconColor} />
+      <span className="text-sm text-text-secondary font-medium">{label}</span>
+    </div>
   );
 
-  if (!ephemeral || prefersReducedMotion) {
-    // show normally (or snap-hide after timeout if reduced motion)
+  const content = (
+    <div className="px-6 py-3 mb-4 border-b border-border-muted flex items-center gap-3 flex-wrap bg-surface-muted/40 rounded-xl">
+      {showStreak && (
+        <Badge
+          icon={Flame}
+          label={`Day ${streak} streak`}
+          color="bg-warning-soft"
+          iconColor="text-warning"
+        />
+      )}
+      {showXP && (
+        <Badge
+          icon={Star}
+          label={`${xp}/${nextLevelXp} XP`}
+          color="bg-surface-highlight"
+          iconColor="text-primary"
+        />
+      )}
+      {showWeeklyGoal && (
+        <Badge
+          icon={Flag}
+          label={`${weeklyProgress}/${weeklyTarget} days this week`}
+          color="bg-surface-highlight"
+          iconColor="text-secondary"
+        />
+      )}
+      {showDue && (
+        <div className="group relative">
+          <Badge
+            icon={Clock}
+            label={`${dueCount} due`}
+            color="bg-surface-highlight"
+          />
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-text-secondary text-xs rounded-lg border border-border-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+            Cards due for review (spaced repetition)
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!ephemeral) {
     return visible ? content : null;
   }
 
   return (
-    <Fade in={visible} timeout={{ enter: 250, exit: 250 }} unmountOnExit>
-      {content}
-    </Fade>
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.25 }}
+        >
+          {content}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1,11 +1,3 @@
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  Modal,
-} from "@mui/material";
 import { useState, useEffect } from "react";
 
 const EditFlashcardModal = ({
@@ -16,124 +8,136 @@ const EditFlashcardModal = ({
   error,
   setError,
 }) => {
-  
   const [editedFlashcard, setEditedFlashcard] = useState(flashcard);
+  const [frontError, setFrontError] = useState("");
+  const [backError, setBackError] = useState("");
 
   useEffect(() => {
     setEditedFlashcard(flashcard);
+    setFrontError("");
+    setBackError("");
   }, [flashcard]);
 
   const handleSave = () => {
-    if (
-      !editedFlashcard?.front_text.trim() ||
-      !editedFlashcard?.back_text.trim()
-    ) {
-      setError("Both question and answer are required.");
+    // Reset errors
+    setFrontError("");
+    setBackError("");
+    setError("");
+
+    // Validate
+    if (!editedFlashcard?.front_text?.trim()) {
+      setFrontError("Question is required");
       return;
     }
-    onSave(editedFlashcard); 
+    if (!editedFlashcard?.back_text?.trim()) {
+      setBackError("Answer is required");
+      return;
+    }
+
+    onSave(editedFlashcard);
   };
 
+  if (!open) return null;
+
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby="edit-flashcard-title">
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: { xs: "90%", sm: 500 },
-          bgcolor: "background.paper",
-          borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-          p: 4,
-        }}
-      >
-        <Typography
-          variant="h5"
-          id="edit-flashcard-title"
-          sx={{ mb: 3, fontWeight: "bold" }}
-        >
-          Edit Flashcard
-        </Typography>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-elevated rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-6 border-b border-border-muted">
+          <h2 className="text-xl font-bold text-text-primary">Edit Flashcard</h2>
+        </div>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
-            {error}
-          </Alert>
-        )}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
+            {/* Error Alert */}
+            {error && (
+              <div className="bg-danger-soft border border-danger text-danger px-4 py-3 rounded-lg flex justify-between items-center">
+                <span>{error}</span>
+                <button
+                  onClick={() => setError("")}
+                  className="text-danger hover:text-text-primary ml-4"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
-        <TextField
-          label="Question"
-          value={editedFlashcard?.front_text || ""}
-          onChange={(e) =>
-            setEditedFlashcard({
-              ...editedFlashcard,
-              front_text: e.target.value,
-            })
-          }
-          fullWidth
-          required
-          error={!editedFlashcard?.front_text.trim()}
-          helperText={
-            !editedFlashcard?.front_text.trim() && "Question is required"
-          }
-          sx={{ mb: 3 }}
-        />
+            {/* Question Input */}
+            <div>
+              <label
+                htmlFor="question-input"
+                className="block text-sm font-medium text-text-secondary mb-2"
+              >
+                Question *
+              </label>
+              <input
+                id="question-input"
+                type="text"
+                value={editedFlashcard?.front_text || ""}
+                onChange={(e) =>
+                  setEditedFlashcard({
+                    ...editedFlashcard,
+                    front_text: e.target.value,
+                  })
+                }
+                className={`w-full bg-background-subtle border ${
+                  frontError ? "border-danger" : "border-border-muted"
+                } rounded-lg px-4 py-3 text-text-primary placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
+                placeholder="Enter the question..."
+              />
+              {frontError && (
+                <p className="text-danger text-sm mt-1">{frontError}</p>
+              )}
+            </div>
 
-        <TextField
-          label="Answer"
-          value={editedFlashcard?.back_text || ""}
-          onChange={(e) =>
-            setEditedFlashcard({
-              ...editedFlashcard,
-              back_text: e.target.value,
-            })
-          }
-          fullWidth
-          required
-          error={!editedFlashcard?.back_text.trim()}
-          helperText={
-            !editedFlashcard?.back_text.trim() && "Answer is required"
-          }
-          multiline
-          rows={3}
-          sx={{ mb: 3 }}
-        />
+            {/* Answer Input */}
+            <div>
+              <label
+                htmlFor="answer-input"
+                className="block text-sm font-medium text-text-secondary mb-2"
+              >
+                Answer *
+              </label>
+              <textarea
+                id="answer-input"
+                value={editedFlashcard?.back_text || ""}
+                onChange={(e) =>
+                  setEditedFlashcard({
+                    ...editedFlashcard,
+                    back_text: e.target.value,
+                  })
+                }
+                rows={4}
+                className={`w-full bg-background-subtle border ${
+                  backError ? "border-danger" : "border-border-muted"
+                } rounded-lg px-4 py-3 text-text-primary placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y`}
+                placeholder="Enter the answer..."
+              />
+              {backError && (
+                <p className="text-danger text-sm mt-1">{backError}</p>
+              )}
+            </div>
+          </div>
+        </div>
 
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button
-            variant="contained"
+        {/* Actions */}
+        <div className="p-4 border-t border-border-muted flex gap-3">
+          <button
             onClick={handleSave}
-            sx={{
-              flex: 1,
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-            }}
+            className="flex-1 bg-primary hover:bg-primary-emphasis text-primary-foreground py-2 px-4 rounded-lg transition-colors font-medium"
           >
             Save Changes
-          </Button>
-          <Button
-            variant="outlined"
+          </button>
+          <button
             onClick={onClose}
-            sx={{
-              flex: 1,
-              borderColor: "primary.main",
-              color: "primary.main",
-              "&:hover": {
-                borderColor: "primary.dark",
-                bgcolor: "rgba(124, 58, 237, 0.04)",
-              },
-            }}
+            className="flex-1 border border-primary text-primary hover:bg-primary-soft hover:text-primary py-2 px-4 rounded-lg transition-colors font-medium"
           >
             Cancel
-          </Button>
-        </Box>
-      </Box>
-    </Modal>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

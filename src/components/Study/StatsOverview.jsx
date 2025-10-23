@@ -1,118 +1,61 @@
-// src/components/Study/StatsOverview.jsx
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  LinearProgress,
-  Tooltip,
-} from "@mui/material";
 import { Target } from "lucide-react";
 
 export default function StatsOverview({
   userStats,
   onUpdateGoalClick,
-  completedThisWeek = 0, // optional, pass real value if you have it
+  completedThisWeek = 0,
 }) {
   const weeklyGoal = userStats?.weekly_goal ?? 50;
   const progress = Math.min((completedThisWeek / weeklyGoal) * 100, 100);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 2, md: 2.5 },
-        mb: 2,
-        borderRadius: 3,
-        bgcolor: "background.paper",
-        border: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: (t) => `${t.palette.primary.main}22`,
-            color: "primary.main",
-            border: 1,
-            borderColor: "divider",
-          }}
-          aria-hidden
+    <div className="bg-surface-elevated border border-border-muted rounded-2xl p-4 md:p-5 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        <div
+          className="p-3 rounded-xl bg-primary/10 border border-border-muted flex items-center justify-center text-primary"
+          aria-hidden="true"
         >
-          <Target size={24} />
-        </Box>
+          <Target className="w-6 h-6" />
+        </div>
 
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Typography variant="body2" color="text.secondary">
-            Weekly Goal
-          </Typography>
+        <div className="flex-1 min-w-0">
+          <p className="text-text-muted text-sm">Weekly Goal</p>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography variant="h6" fontWeight={700}>
-              {weeklyGoal} cards
-            </Typography>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h3 className="text-lg font-bold text-text-primary">{weeklyGoal} cards</h3>
 
-            <Tooltip title="Change weekly target">
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={onUpdateGoalClick}
-                sx={{ textTransform: "none" }}
-              >
-                Update
-              </Button>
-            </Tooltip>
-          </Box>
-        </Box>
-      </Box>
+            <button
+              onClick={onUpdateGoalClick}
+              className="text-text-secondary border border-border-muted hover:bg-surface-highlight px-3 py-1 rounded-lg text-sm transition-colors"
+            >
+              Update
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {/* Tiny progress indicator (optional, unobtrusive) */}
-      <Box>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mb: 0.75,
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
+      {/* Progress Bar */}
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-text-muted text-xs">
             {completedThisWeek}/{weeklyGoal} this week
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </span>
+          <span className="text-text-muted text-xs">
             {Math.round(progress)}%
-          </Typography>
-        </Box>
+          </span>
+        </div>
 
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{
-            height: 6,
-            borderRadius: 3,
-            bgcolor: "action.hover",
-            "& .MuiLinearProgress-bar": {
-              borderRadius: 4,
-              background: (theme) =>
-                `linear-gradient(90deg, ${theme.palette.primary.main}, ${
-                  theme.palette.secondary?.main || theme.palette.primary.dark
-                })`,
-            },
-          }}
+        <div
+          className="h-1.5 bg-surface-highlight rounded-full overflow-hidden"
           aria-label={`Weekly goal progress: ${completedThisWeek} of ${weeklyGoal} cards`}
-        />
-      </Box>
-    </Paper>
+        >
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

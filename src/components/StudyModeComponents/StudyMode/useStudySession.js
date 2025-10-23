@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { deckApi } from "../../../utils/apiClient";
+import { handleApiError } from "../../../services/errorHandler";
+import { useProgress } from "../../../hooks/useProgress";
+import { showError, showSuccess } from "../../common/ErrorSnackbar";
 
-export const useStudySession = (
-  deckId,
-  API_URL,
-  startTimeRef,
-  sessionStartTimeRef
-) => {
+export const useStudySession = (deckId, startTimeRef, sessionStartTimeRef) => {
   const [flashcards, setFlashcards] = useState([]);
   const [progress, setProgress] = useState([]);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
@@ -24,63 +23,81 @@ export const useStudySession = (
   const [showSummary, setShowSummary] = useState(false);
   const [deck, setDeck] = useState(null);
   const [answeredCards, setAnsweredCards] = useState(new Set());
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [cardStartTime, setCardStartTime] = useState(null);
+  const [accumulatedTime, setAccumulatedTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const {
+    deckProgress,
+    fetchProgressForDeck,
+    logReview,
+    loading: progressLoading,
+  } = useProgress(deckId, true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("authToken");
-
-        //fetch deck
-        const deckResponse = await fetch(`${API_URL}/decks/${deckId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!deckResponse.ok) throw new Error("Failed to fetch deck details");
-        const deckData = await deckResponse.json();
+        const deckData = await deckApi.get(deckId);
         setDeck(deckData);
 
-        //fetch deck-specific flashcards
-        const flashcardsResponse = await fetch(`${API_URL}/flashcards?deck_id=${deckId}&all=true`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const flashcardsData = await deckApi.listFlashcards({
+          deck_id: deckId,
+          all: true,
         });
 
-        if (!flashcardsResponse.ok)
-          throw new Error("Failed to fetch flashcards");
-        const flashcardsData = await flashcardsResponse.json();
-
         // Use items if paginated response, otherwise use direct array
-        const deckFlashcards = Array.isArray(flashcardsData.items) 
-        ? flashcardsData.items 
-        : Array.isArray(flashcardsData) 
-          ? flashcardsData 
+        const deckFlashcards = Array.isArray(flashcardsData?.items)
+          ? flashcardsData.items
+          : Array.isArray(flashcardsData)
+          ? flashcardsData
           : [];
-      
-      setFlashcards(deckFlashcards);
-        const progressResponse = await fetch(
-          `${API_URL}/progress/deck/${deckId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
 
-        if (!progressResponse.ok) throw new Error("Failed to fetch progress");
-        const progressData = await progressResponse.json();
+        setFlashcards(deckFlashcards);
+        const progressData = await fetchProgressForDeck(deckId);
         setProgress(Array.isArray(progressData) ? progressData : []);
 
         setSessionStats((prev) => ({
           ...prev,
           totalCards: deckFlashcards.length,
         }));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setError("Failed to load study session. Please try again.");
+        setCardStartTime(Date.now());
+        setAccumulatedTime(0);
+        setIsPaused(false);
+        if (startTimeRef) {
+          startTimeRef.current = Date.now();
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        const apiError = handleApiError(err);
+        setError(apiError.message || "Failed to load study session. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [deckId, API_URL]);
+  }, [deckId, fetchProgressForDeck, startTimeRef]);
+
+  useEffect(() => {
+    if (Array.isArray(deckProgress)) {
+      setProgress(deckProgress);
+    }
+  }, [deckProgress]);
+
+  const startTimingForCard = useCallback(() => {
+    if (!flashcards.length || showSummary) return;
+    const now = Date.now();
+    setCardStartTime(now);
+    setAccumulatedTime(0);
+    setIsPaused(false);
+    if (startTimeRef) {
+      startTimeRef.current = now;
+    }
+  }, [flashcards.length, showSummary, startTimeRef]);
+
+  useEffect(() => {
+    startTimingForCard();
+  }, [currentFlashcardIndex, startTimingForCard]);
 
   const getCardProgress = useCallback(
     (flashcardId) => {
@@ -96,32 +113,71 @@ export const useStudySession = (
     [progress]
   );
 
-  const handleFlashcardResponse = useCallback(
+  const getElapsedSeconds = useCallback(() => {
+    if (!cardStartTime && accumulatedTime === 0) {
+      return 1;
+    }
+    const activeMs = cardStartTime && !isPaused ? Date.now() - cardStartTime : 0;
+    const elapsed = Math.round((accumulatedTime + (activeMs || 0)) / 1000);
+    return Math.min(Math.max(elapsed || 1, 1), 300);
+  }, [cardStartTime, accumulatedTime, isPaused]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (cardStartTime && !isPaused) {
+          setAccumulatedTime((prev) => prev + (Date.now() - cardStartTime));
+          setIsPaused(true);
+        }
+      } else if (isPaused) {
+        setCardStartTime(Date.now());
+        setIsPaused(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [cardStartTime, isPaused]);
+
+  const handleFinishSession = useCallback(() => {
+    const totalTimeSpent = (Date.now() - sessionStartTimeRef.current) / 60000;
+    setSessionStats((prev) => ({
+      ...prev,
+      timeSpent: Math.max(prev.timeSpent, totalTimeSpent),
+    }));
+    setShowSummary(true);
+    setIsPaused(true);
+  }, [sessionStartTimeRef]);
+
+  const showNextCard = useCallback(() => {
+    if (currentFlashcardIndex < flashcards.length - 1) {
+      setCurrentFlashcardIndex((prev) => prev + 1);
+      setShowAnswer(false);
+    } else {
+      handleFinishSession();
+    }
+  }, [currentFlashcardIndex, flashcards.length, handleFinishSession]);
+
+  const handleAnswer = useCallback(
     async (wasCorrect) => {
+      if (submittingReview) return;
       const currentFlashcard = flashcards[currentFlashcardIndex];
       if (!currentFlashcard) { 
         console.error("No current flashcard found");
         return;
       }
-      const timeSpent = (Date.now() - startTimeRef.current) / 60000; // Convert to minutes
+      const deckIdValue = Number.parseInt(deckId, 10);
+      const timeSpentSeconds = getElapsedSeconds();
+      const timeSpentMinutes = timeSpentSeconds / 60;
 
       try {
-        const token = localStorage.getItem("authToken");
-        const response = await fetch(`${API_URL}/progress`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            deck_id: Number.parseInt(deckId),
-            flashcard_id: currentFlashcard.id,
-            was_correct: wasCorrect,
-            time_spent: timeSpent,
-          }),
-        });
-
-        if (!response.ok) throw new Error("Failed to update progress");
+        setSubmittingReview(true);
+        await logReview(
+          deckIdValue,
+          currentFlashcard.id,
+          wasCorrect,
+          timeSpentSeconds
+        );
 
         // Track answered card
         setAnsweredCards((prev) => new Set(prev).add(currentFlashcard.id));
@@ -130,24 +186,24 @@ export const useStudySession = (
           ...prev,
           correctAnswers: prev.correctAnswers + (wasCorrect ? 1 : 0),
           incorrectAnswers: prev.incorrectAnswers + (wasCorrect ? 0 : 1),
-          timeSpent: prev.timeSpent + timeSpent,
+          timeSpent: prev.timeSpent + timeSpentMinutes,
         }));
-      } catch (error) {
-        console.error("Error updating progress:", error);
-        setError("Failed to save your progress. Please try again.");
+        showSuccess("Review logged!");
+        setAccumulatedTime(0);
+        setIsPaused(false);
+        setCardStartTime(Date.now());
+        showNextCard();
+      } catch (err) {
+        console.error("Error updating progress:", err);
+        const apiError = handleApiError(err);
+        setError(apiError.message || "Failed to save your progress. Please try again.");
+        showError(apiError.message || "Failed to save your progress. Please try again.");
+      } finally {
+        setSubmittingReview(false);
       }
     },
-    [API_URL, currentFlashcardIndex, deckId, flashcards, startTimeRef]
+    [currentFlashcardIndex, deckId, flashcards, getElapsedSeconds, logReview, showNextCard, submittingReview]
   );
-
-  const handleFinishSession = useCallback(() => {
-    const totalTimeSpent = (Date.now() - sessionStartTimeRef.current) / 60000;
-    setSessionStats((prev) => ({
-      ...prev,
-      timeSpent: totalTimeSpent,
-    }));
-    setShowSummary(true);
-  }, [sessionStartTimeRef]);
 
   return {
     deck,
@@ -163,9 +219,12 @@ export const useStudySession = (
     setSessionStats,
     showSummary,
     setShowSummary,
-    handleFlashcardResponse,
+    handleAnswer,
     getCardProgress,
     answeredCards,
     handleFinishSession,
+    submittingReview,
+    getElapsedSeconds,
+    progressLoading,
   };
 };

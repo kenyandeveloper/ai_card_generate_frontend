@@ -1,32 +1,30 @@
-import { Container, Card, Typography, Button } from "@mui/material";
 import { Brain, ArrowLeft } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 import NavBar from "../../NavBar";
 
 const EmptyDeckState = ({ deckId }) => {
   return (
     <>
       <NavBar />
-      <Container maxWidth="sm" sx={{ mt: 4 }}>
-        <Card sx={{ textAlign: "center", p: 4 }}>
-          <Brain size={48} sx={{ color: "primary.main", mb: 2 }} />
-          <Typography variant="h5" sx={{ mb: 2 }}>
+      <div className="max-w-md mx-auto mt-16 px-4">
+        <div className="bg-surface-elevated border border-border-muted rounded-2xl p-8 text-center">
+          <Brain className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-text-primary mb-4">
             No Flashcards Found
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            This deck doesn't have any flashcards yet. Add some flashcards to
-            start studying!
-          </Typography>
-          <Button
-            variant="contained"
-            component={RouterLink}
+          </h2>
+          <p className="text-text-muted mb-6">
+            This deck doesn&rsquo;t have any flashcards yet. Add some flashcards
+            to start studying!
+          </p>
+          <Link
             to={`/mydecks/${deckId}`}
-            startIcon={<ArrowLeft size={18} />}
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary-emphasis text-text-primary px-6 py-3 rounded-lg font-medium transition-colors"
           >
+            <ArrowLeft className="w-5 h-5" />
             Back to Deck
-          </Button>
-        </Card>
-      </Container>
+          </Link>
+        </div>
+      </div>
     </>
   );
 };

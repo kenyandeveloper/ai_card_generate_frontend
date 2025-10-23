@@ -1,91 +1,42 @@
-"use client";
-
-import {
-  Box,
-  Typography,
-  Button,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+// Header.jsx (Vite + Tailwind, dark mode only)
 import { BookOpen, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
-const Header = ({ onCreateDeck, isMobile: propIsMobile }) => {
-  const theme = useTheme();
-  const systemIsMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMobile = propIsMobile !== undefined ? propIsMobile : systemIsMobile;
-  const isVerySmall = useMediaQuery("(max-width:360px)");
-
+export default function Header({ onCreateDeck }) {
   return (
-    <motion.div
+    <motion.section
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="mb-2 sm:mb-3 md:mb-4"
     >
-      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: {
-              xs: isMobile ? "flex-start" : "center",
-              sm: "center",
-            },
-            flexDirection: { xs: isMobile ? "column" : "row", sm: "row" },
-            gap: { xs: isMobile ? 1.5 : 0, sm: 0 },
-            mb: { xs: 1, sm: 2 },
-          }}
-        >
-          <Typography
-            variant={isMobile ? "h5" : "h4"}
-            sx={{
-              fontWeight: "bold",
-              color: "text.primary",
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "2rem" },
-              mb: { xs: isMobile ? 0.5 : 0, sm: 0 },
-            }}
-          >
-            <BookOpen size={isMobile ? 24 : 32} />
-            My Flashcard Decks
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Plus size={isMobile ? 16 : 18} />}
-            onClick={onCreateDeck}
-            size={isMobile ? "small" : "medium"}
-            sx={{
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-              borderRadius: { xs: 1.5, sm: 2 },
-              fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-              py: { xs: 0.75, sm: undefined },
-              px: { xs: 1.5, sm: 2 },
-              alignSelf: { xs: isMobile ? "flex-start" : "auto", sm: "auto" },
-              textTransform: "none",
-            }}
-          >
-            {isVerySmall ? "New Deck" : "Create New Deck"}
-          </Button>
-        </Box>
-        <Typography
-          variant="body1"
-          sx={{
-            color: "text.secondary",
-            fontSize: { xs: "0.875rem", sm: "1rem" },
-            lineHeight: 1.5,
-          }}
-        >
-          Manage your flashcard decks and track your learning progress
-        </Typography>
-      </Box>
-    </motion.div>
-  );
-};
+      <div className="mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-0 sm:flex-row sm:items-center sm:justify-between">
+        {/* Title */}
+        <h1 className="flex items-center gap-2 font-bold text-xl sm:text-2xl md:text-3xl text-text-primary">
+          <BookOpen
+            className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+            aria-hidden="true"
+          />
+          <span>My Flashcard Decks</span>
+        </h1>
 
-export default Header;
+        {/* Action */}
+        <button
+          type="button"
+          onClick={onCreateDeck}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-primary-emphasis focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0 transition sm:self-auto self-start"
+          aria-label="Create new deck"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          {/* On very small screens show shorter label; on >=sm show full label */}
+          <span className="sm:hidden">New Deck</span>
+          <span className="hidden sm:inline">Create New Deck</span>
+        </button>
+      </div>
+
+      <p className="text-sm sm:text-base leading-relaxed text-text-muted">
+        Manage your flashcard decks and track your learning progress
+      </p>
+    </motion.section>
+  );
+}

@@ -1,55 +1,55 @@
 // src/components/Onboarding/CuratedDeckCard.jsx
-import {
-  Card,
-  CardActionArea,
-  CardContent,
-  Typography,
-  Chip,
-  Box,
-  Checkbox,
-} from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { CheckCircle } from "lucide-react";
 
 export default function CuratedDeckCard({ deck, selected, onToggle }) {
+  // Click toggles selection; expose state to AT with aria-pressed.
+  const handleClick = () => onToggle(deck.id);
+
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        position: "relative",
-        borderColor: selected ? "primary.main" : "divider",
-        boxShadow: selected ? "0 0 0 2px rgba(85,102,255,0.35)" : "none",
-        transition: "all 0.2s ease",
-      }}
+    <div
+      className={[
+        "relative rounded-2xl border transition-all",
+        "bg-background-subtle/60 border-border-muted hover:border-border-muted",
+        selected ? "ring-2 ring-indigo-500/40 border-indigo-500/50" : "ring-0",
+      ].join(" ")}
     >
-      <CardActionArea onClick={() => onToggle(deck.id)}>
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-pressed={selected}
+        className="w-full text-left rounded-2xl p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
+      >
         {/* Selection badge */}
         {selected && (
-          <CheckCircleIcon
-            color="primary"
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              fontSize: 24,
-              bgcolor: "background.paper",
-              borderRadius: "50%",
-            }}
-          />
+          <span className="absolute right-2 top-2 rounded-full bg-background-subtle p-1">
+            <CheckCircle
+              className="h-5 w-5 text-indigo-400"
+              aria-hidden="true"
+            />
+            <span className="sr-only">Selected deck</span>
+          </span>
         )}
 
-        <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-            <Chip size="small" label={deck.subject} variant="outlined" />
-            <Chip size="small" label={`${deck.estCards} cards`} />
-          </Box>
-          <Typography variant="subtitle1" fontWeight={700}>
-            {deck.title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {deck.description}
-          </Typography>
-        </CardContent>
-      </CardActionArea>
-    </Card>
+        {/* Top chips */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="inline-flex items-center rounded-lg border border-border-muted px-2 py-0.5 text-xs text-text-secondary">
+            {deck.subject}
+          </span>
+          <span className="inline-flex items-center rounded-lg bg-surface-elevated px-2 py-0.5 text-xs text-text-primary">
+            {deck.estCards} cards
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-sm sm:text-base font-semibold text-text-primary">
+          {deck.title}
+        </h3>
+
+        {/* Description */}
+        <p className="mt-1 text-xs sm:text-sm leading-relaxed text-text-muted">
+          {deck.description}
+        </p>
+      </button>
+    </div>
   );
 }

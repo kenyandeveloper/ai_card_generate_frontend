@@ -1,21 +1,9 @@
-"use client";
-
-import { Box, Typography } from "@mui/material";
 import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
 
 const LoadingState = ({ message = "Loading..." }) => {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        flexDirection: "column",
-        gap: 2,
-      }}
-    >
+    <div className="flex justify-center items-center h-screen flex-col gap-4">
       <motion.div
         animate={{
           rotate: 360,
@@ -26,12 +14,10 @@ const LoadingState = ({ message = "Loading..." }) => {
           ease: "linear",
         }}
       >
-        <Brain size={40} color="primary.main" />
+        <Brain className="w-10 h-10 text-primary" />
       </motion.div>
-      <Typography variant="h6" color="text.secondary">
-        {message}
-      </Typography>
-    </Box>
+      <p className="text-xl text-text-muted font-medium">{message}</p>
+    </div>
   );
 };
 

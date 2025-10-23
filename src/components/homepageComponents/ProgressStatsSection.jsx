@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../hooks/useUser";
 import ProgressStats from "./ProgressStats";
 
 export default function ProgressStatsSection() {
@@ -19,10 +19,10 @@ export default function ProgressStatsSection() {
         transition={{ duration: 0.5 }}
         viewport={{ once: true }}
       >
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4 text-gray-100">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4 text-text-primary">
           Track Your Learning Progress
         </h2>
-        <p className="text-base md:text-xl text-center text-gray-400 max-w-3xl mx-auto mb-8 md:mb-12 font-normal">
+        <p className="text-base md:text-xl text-center text-text-muted max-w-3xl mx-auto mb-8 md:mb-12 font-normal">
           Visualize your learning journey with detailed analytics and progress
           tracking to stay motivated.
         </p>
@@ -36,24 +36,24 @@ export default function ProgressStatsSection() {
         viewport={{ once: true }}
         className="max-w-lg mx-auto mb-8 md:mb-12 text-center"
       >
-        <p className="text-sm text-gray-400 font-medium mb-2">
+        <p className="text-sm text-text-muted font-medium mb-2">
           XP Progress — {xp} / {nextLevelXp}
         </p>
 
         {/* Progress Bar Container */}
-        <div className="relative h-2.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="relative h-2.5 bg-surface-highlight rounded-full overflow-hidden">
           {/* Progress Fill */}
           <motion.div
             initial={{ width: 0 }}
             whileInView={{ width: `${progress}%` }}
             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
             viewport={{ once: true }}
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-purple-500 rounded-full"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-secondary rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-text-subtle mt-2">
           Level {currentLevel} in progress…
         </p>
       </motion.div>

@@ -1,35 +1,20 @@
 // src/pages/WelcomeOnboarding.jsx
-"use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Container,
-  Typography,
-  Chip,
-  Button,
-  Grid,
-  Divider,
-  Stack,
-  CircularProgress,
-  Snackbar,
-  Alert,
-} from "@mui/material";
 import CuratedDeckCard from "../components/Onboarding/CuratedDeckCard";
 import AITeaserBanner from "../components/Onboarding/AITeaserBanner";
-// ❌ Remove static catalog imports
-// import { SUBJECTS, CURATED_DECKS } from "../utils/catalog";
 import {
   assignStarterDecks,
   fetchDeckCount,
   fetchCatalog,
 } from "../utils/onboardingApi";
-import { useUser } from "../components/context/UserContext";
+import { useUser } from "../hooks/useUser";
 import NavBar from "../components/NavBar";
+import { motion } from "framer-motion";
 
 const MIN_PICK = 2;
 const MAX_PICK = 3;
-const DEFAULT_VISIBLE = 3; // for "Show all" toggle
+const DEFAULT_VISIBLE = 3;
 
 export default function WelcomeOnboarding() {
   const navigate = useNavigate();
@@ -38,18 +23,20 @@ export default function WelcomeOnboarding() {
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const [catalog, setCatalog] = useState([]); // normalized from API
+  const hasCheckedDeckCountRef = useRef(false);
+
+  const [catalog, setCatalog] = useState([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
 
   const [showAll, setShowAll] = useState(false);
+  const [aiDismissed, setAiDismissed] = useState(false);
 
   // derived subjects from catalog
   const subjects = useMemo(() => {
-    const set = new Map(); // preserve first-seen label order
+    const set = new Map();
     for (const d of catalog) {
       const id = d.subject || "other";
       if (!set.has(id)) {
-        // label: title case-ish
         const label = id.charAt(0).toUpperCase() + id.slice(1);
         set.set(id, { id, label });
       }
@@ -59,51 +46,87 @@ export default function WelcomeOnboarding() {
 
   const [activeSubjects, setActiveSubjects] = useState(new Set());
   useEffect(() => {
-    // when catalog loads, default to all subjects active
-    if (subjects.length && activeSubjects.size === 0) {
-      setActiveSubjects(new Set(subjects.map((s) => s.id)));
-    }
-  }, [subjects]); // eslint-disable-line
+    if (!subjects.length) return;
+    setActiveSubjects((prev) => {
+      if (prev.size > 0) return prev;
+      return new Set(subjects.map((s) => s.id));
+    });
+  }, [subjects]); // intentional: prime once
 
   const [selected, setSelected] = useState(() => new Set());
 
   const [snackbar, setSnackbar] = useState({
     open: false,
     msg: "",
-    severity: "info",
+    severity: "info", // 'info' | 'success' | 'warning' | 'error'
   });
 
   // redirect guard: if user already has decks, skip onboarding
   useEffect(() => {
-    let mounted = true;
-    (async () => {
+    if (hasCheckedDeckCountRef.current) return;
+
+    let cancelled = false;
+    const run = async () => {
       if (userLoading) return;
       if (!isAuthenticated) {
         navigate("/login");
         return;
       }
-      const count = await fetchDeckCount();
-      if (!mounted) return;
-      if (count > 0) navigate("/dashboard");
-      else setChecking(false);
-    })();
+      try {
+        const count = await fetchDeckCount();
+        if (cancelled) return;
+        if (count > 0) navigate("/dashboard");
+        else setChecking(false);
+      } catch (err) {
+        if (!cancelled) setChecking(false);
+        console.warn("[WelcomeOnboarding] deck count failed:", err);
+      } finally {
+        hasCheckedDeckCountRef.current = true;
+      }
+    };
+
+    run();
     return () => {
-      mounted = false;
+      cancelled = true;
     };
   }, [isAuthenticated, userLoading, navigate]);
 
-  // load catalog dynamically (with fallback handled inside onboardingApi)
+  // load catalog
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const data = await fetchCatalog();
-      if (!mounted) return;
-      setCatalog(Array.isArray(data) ? data : []);
-      setLoadingCatalog(false);
-    })();
-    return () => {
-      mounted = false;
+    setLoadingCatalog(true);
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const load = async () => {
+      try {
+        const data = await fetchCatalog({ signal: controller.signal });
+        if (!cancelled) {
+          setCatalog(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn("[WelcomeOnboarding] catalog load failed:", err);
+          setCatalog([]);
+        }
+      } finally {
+        if (!cancelled) setLoadingCatalog(false);
+      }
     };
+
+    load();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  // read AI teaser dismissal once on mount
+  useEffect(() => {
+    try {
+      setAiDismissed(localStorage.getItem("aiTeaserDismissed") === "1");
+    } catch {
+      // ignore localStorage read errors (e.g., privacy mode)
+    }
   }, []);
 
   const filteredBySubject = useMemo(() => {
@@ -120,7 +143,7 @@ export default function WelcomeOnboarding() {
     const next = new Set(activeSubjects);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    if (next.size === 0) return; // require at least one subject on
+    if (next.size === 0) return; // keep at least one active
     setActiveSubjects(next);
   };
 
@@ -167,122 +190,145 @@ export default function WelcomeOnboarding() {
   const handleDismissAI = () => {
     try {
       localStorage.setItem("aiTeaserDismissed", "1");
-    } catch {}
+    } catch {
+      // ignore localStorage write errors (e.g., storage disabled)
+    }
+    setAiDismissed(true);
   };
 
   if (checking || loadingCatalog) {
     return (
       <>
         <NavBar />
-        <Container maxWidth="lg" sx={{ py: 6, textAlign: "center" }}>
-          <CircularProgress />
-        </Container>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center">
+          <div
+            className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-border-muted border-t-slate-300"
+            aria-label="Loading"
+            role="status"
+          />
+        </div>
       </>
     );
   }
 
   return (
-    <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
+    <main className="min-h-dvh bg-background text-text-primary">
       <NavBar />
-      <Container
-        maxWidth="lg"
-        sx={{ pt: { xs: 3, md: 5 }, pb: { xs: 6, md: 10 } }}
-      >
-        <Box sx={{ textAlign: "center", mb: 3 }}>
-          <Typography variant="h4" fontWeight={800}>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 md:pt-5 pb-6 md:pb-10">
+        <header className="text-center mb-3">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
             Get started with learning in 2 minutes
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+          </h1>
+          <p className="text-sm md:text-base text-text-secondary mt-1">
             Pick {MIN_PICK}–{MAX_PICK} decks you like — we’ll load starter
             content so you can begin right away.
-          </Typography>
-        </Box>
+          </p>
+        </header>
 
-        {/* Subject filters (derived) */}
-        <Stack
-          direction="row"
-          spacing={1}
-          justifyContent="center"
-          sx={{ flexWrap: "wrap", mb: 2 }}
-        >
+        {/* Subject filters */}
+        <div className="flex flex-wrap justify-center gap-2 mb-2">
           {subjects.map((s) => {
             const on = activeSubjects.has(s.id);
             return (
-              <Chip
+              <button
                 key={s.id}
-                label={s.label}
+                type="button"
                 onClick={() => toggleSubject(s.id)}
-                color={on ? "primary" : "default"}
-                variant={on ? "filled" : "outlined"}
-                sx={{ fontWeight: 600 }}
-              />
+                className={[
+                  "px-3 py-1.5 rounded-full text-sm font-semibold transition border",
+                  on
+                    ? "bg-primary border-primary text-primary-foreground hover:bg-primary-emphasis"
+                    : "bg-background-subtle border-border-muted text-text-secondary hover:border-primary hover:text-primary",
+                ].join(" ")}
+              >
+                {s.label}
+              </button>
             );
           })}
-        </Stack>
+        </div>
 
         {/* Show all toggle */}
-        <Stack direction="row" justifyContent="center" sx={{ mb: 2 }}>
-          <Button variant="outlined" onClick={() => setShowAll((v) => !v)}>
+        <div className="flex justify-center mb-2">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="px-4 py-2 rounded-lg border border-border-muted hover:border-border-muted text-sm"
+          >
             {showAll ? "Show Less" : "Show All Catalogs"}
-          </Button>
-        </Stack>
+          </button>
+        </div>
 
-        <Grid container spacing={2}>
+        {/* Deck grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {visibleDecks.map((deck) => {
             const deckId = deck.id || deck.key || deck.title;
             return (
-              <Grid item xs={12} sm={6} md={4} key={deckId}>
+              <div key={deckId}>
                 <CuratedDeckCard
                   deck={deck}
                   selected={selected.has(deckId)}
                   onToggle={() => toggleDeck(deckId)}
                 />
-              </Grid>
+              </div>
             );
           })}
-        </Grid>
+        </div>
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{ mt: 3 }}
-          alignItems="center"
-        >
-          <Button
-            size="large"
-            variant="contained"
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 mt-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
             onClick={handleContinue}
             disabled={!canContinue || submitting}
+            className="w-full sm:w-auto rounded-lg px-5 py-2.5 font-medium bg-primary hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Setting up…" : "Start learning"}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
+          </motion.button>
+
+          <p className="text-sm text-text-secondary">
             Selected {selected.size}/{MAX_PICK}
-          </Typography>
-        </Stack>
+          </p>
+        </div>
 
-        <Divider sx={{ my: 4 }} />
+        <hr className="my-4 border-border-strong" />
 
-        {typeof window !== "undefined" &&
-          localStorage.getItem("aiTeaserDismissed") !== "1" && (
-            <AITeaserBanner onTryAI={handleTryAI} onDismiss={handleDismissAI} />
-          )}
-      </Container>
+        {!aiDismissed && (
+          <AITeaserBanner onTryAI={handleTryAI} onDismiss={handleDismissAI} />
+        )}
+      </section>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.msg}
-        </Alert>
-      </Snackbar>
-    </Box>
+      {/* Snackbar / Toast */}
+      {snackbar.open && (
+        <div className="fixed inset-x-0 bottom-4 flex justify-center px-4">
+          <div
+            role="alert"
+            className={[
+              "w-full max-w-lg rounded-xl border px-4 py-3 shadow-lg",
+              snackbar.severity === "error" &&
+                "bg-danger-soft border-danger/30 text-danger",
+              snackbar.severity === "warning" &&
+                "bg-warning-soft border-warning/30 text-warning",
+              snackbar.severity === "success" &&
+                "bg-success-soft border-success/30 text-success",
+              snackbar.severity === "info" &&
+                "bg-secondary-soft border-secondary/30 text-secondary",
+            ].join(" ")}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm">{snackbar.msg}</p>
+              <button
+                className="text-xs underline underline-offset-2 hover:opacity-80"
+                onClick={() => setSnackbar((s) => ({ ...s, open: false }))}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }

@@ -1,6 +1,3 @@
-"use client";
-
-import { Box, Card, CardContent, Typography, Tooltip } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
 
@@ -15,7 +12,7 @@ const FlashcardDisplay = ({
   };
 
   return (
-    <Box sx={{ perspective: "1000px" }}>
+    <div className="perspective-1000">
       <AnimatePresence mode="wait">
         <motion.div
           key={showAnswer ? "-answer" : "-question"}
@@ -24,98 +21,59 @@ const FlashcardDisplay = ({
           exit={{ rotateX: 90, opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card
-            sx={{
-              minHeight: 300,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              p: 4,
-              cursor: "pointer",
-              position: "relative",
-              "&:hover": {
-                boxShadow: (theme) =>
-                  `0 0 0 2px ${theme.palette.primary.main}, 0 4px 20px rgba(0,0,0,0.1)`,
-              },
-            }}
+          <div
+            className="min-h-[300px] bg-surface-elevated border-2 border-border-muted rounded-2xl p-8 cursor-pointer flex flex-col justify-center items-center relative hover:border-primary hover:shadow-lg transition-all duration-200"
             onClick={handleCardClick}
           >
-            <CardContent sx={{ width: "100%", textAlign: "center" }}>
-              <Typography variant="h5" sx={{ mb: 2, color: "text.primary" }}>
-                {showAnswer ? "Answer" : "Question"}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ mb: 4, color: "text.primary", fontWeight: "medium" }}
-              >
-                {showAnswer
-                  ? currentFlashcard.back_text
-                  : currentFlashcard.front_text}
-              </Typography>
+            {/* Header */}
+            <h3 className="text-xl text-text-secondary mb-4">
+              {showAnswer ? "Answer" : "Question"}
+            </h3>
 
-              <Typography variant="body2" color="text.secondary">
-                {showAnswer ? "Click to see question" : "Click to see answer"}
-              </Typography>
+            {/* Content */}
+            <h2 className="text-3xl text-text-primary font-medium text-center mb-8">
+              {showAnswer
+                ? currentFlashcard.back_text
+                : currentFlashcard.front_text}
+            </h2>
 
-              <Box
-                sx={{
-                  position: "absolute",
-                  bottom: 16,
-                  left: 16,
-                  display: "flex",
-                  gap: 2,
-                  color: "text.secondary",
-                }}
+            {/* Instructions */}
+            <p className="text-text-muted text-sm">
+              {showAnswer ? "Click to see question" : "Click to see answer"}
+            </p>
+
+            {/* Stats */}
+            <div className="absolute bottom-4 left-4 flex gap-4 text-text-muted">
+              <div className="flex items-center gap-1" title="Times Studied">
+                <Brain className="w-4 h-4" />
+                <span className="text-xs">{cardProgress.study_count}</span>
+              </div>
+              <div className="flex items-center gap-1" title="Correct Attempts">
+                <ThumbsUp className="w-4 h-4" />
+                <span className="text-xs">{cardProgress.correct_attempts}</span>
+              </div>
+              <div
+                className="flex items-center gap-1"
+                title="Incorrect Attempts"
               >
-                <Tooltip title="Times Studied">
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <Brain size={16} />
-                    <Typography variant="caption">
-                      {cardProgress.study_count}
-                    </Typography>
-                  </Box>
-                </Tooltip>
-                <Tooltip title="Correct Attempts">
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <ThumbsUp size={16} />
-                    <Typography variant="caption">
-                      {cardProgress.correct_attempts}
-                    </Typography>
-                  </Box>
-                </Tooltip>
-                <Tooltip title="Incorrect Attempts">
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <ThumbsDown size={16} />
-                    <Typography variant="caption">
-                      {cardProgress.incorrect_attempts}
-                    </Typography>
-                  </Box>
-                </Tooltip>
-              </Box>
-              {cardProgress.is_learned && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: 16,
-                    right: 16,
-                    color: "success.main",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Trophy size={20} />
-                  <Typography variant="caption" sx={{ fontWeight: "medium" }}>
-                    Mastered
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+                <ThumbsDown className="w-4 h-4" />
+                <span className="text-xs">
+                  {cardProgress.incorrect_attempts}
+                </span>
+              </div>
+            </div>
+
+            {/* Mastered Badge */}
+            {cardProgress.is_learned && (
+              <div className="absolute top-4 right-4 text-success flex items-center gap-1">
+                <Trophy className="w-5 h-5" />
+                <span className="text-sm font-medium">Mastered</span>
+              </div>
+            )}
+          </div>
         </motion.div>
       </AnimatePresence>
-    </Box>
+    </div>
   );
 };
 

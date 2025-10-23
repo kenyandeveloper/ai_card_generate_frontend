@@ -1,16 +1,6 @@
-"use client";
-
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "../context/UserContext";
-import {
-  Box,
-  Container,
-  useTheme,
-  Alert,
-  useMediaQuery,
-  Pagination,
-} from "@mui/material";
+import { useUser } from "../../hooks/useUser";
 import NavBar from "../NavBar";
 import DeckHeader from "./DeckHeader";
 import FlashcardList from "./FlashCardList";
@@ -29,9 +19,6 @@ const DeckView = () => {
   const { user, isAuthenticated, loading: userLoading } = useUser();
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  // const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md")); // not used
 
   const [deck, setDeck] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
@@ -48,10 +35,8 @@ const DeckView = () => {
   const [flashcardToDelete, setFlashcardToDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const cardsPerPage = 10;
 
-  // 🔒 race guard: increment this before each fetch; only latest response is applied
   const requestSeq = useRef(0);
 
   // Redirect to login if unauthenticated
@@ -61,21 +46,17 @@ const DeckView = () => {
     }
   }, [userLoading, isAuthenticated, navigate]);
 
-  // 🔄 Reset state immediately when deckId or user changes
+  // Reset state when deckId or user changes
   useEffect(() => {
-    // clear any stale content while new deck loads
     setDeck(null);
     setFlashcards([]);
     setError("");
     setTotalPages(1);
-    setTotalItems(0);
     setCurrentPage(1);
-    // also bump the requestSeq so any in-flight responses won't apply
     requestSeq.current += 1;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId, user]);
 
-  // 🔹 Loader function (race-safe)
+  // Loader function (race-safe)
   const loadDeckAndFlashcards = useCallback(async () => {
     if (!user || !deckId) return;
     setLoading(true);
@@ -83,19 +64,16 @@ const DeckView = () => {
     try {
       const { deckData, flashcardsData, pagination } =
         await fetchDeckAndFlashcards(deckId, currentPage, cardsPerPage);
-      // apply only if this is the latest request
       if (seq === requestSeq.current) {
         setDeck(deckData);
         setFlashcards(Array.isArray(flashcardsData) ? flashcardsData : []);
         setTotalPages(pagination.total_pages);
-        setTotalItems(pagination.total_items);
         setError("");
       }
     } catch (err) {
       if (seq === requestSeq.current) {
         console.error("Error fetching data:", err);
         setError("Failed to load deck data. Please try again later.");
-        // keep flashcards cleared on error
         setDeck((prev) => prev ?? null);
         setFlashcards([]);
       }
@@ -106,7 +84,7 @@ const DeckView = () => {
     }
   }, [user, deckId, currentPage]);
 
-  // initial & paginated fetch (and when deckId changes)
+  // initial & paginated fetch
   useEffect(() => {
     if (user && deckId) {
       loadDeckAndFlashcards();
@@ -117,7 +95,6 @@ const DeckView = () => {
     setAddModalOpen(true);
   };
 
-  // ✅ Avoid append+refresh duplication: reload after adding instead of append
   const handleSaveFlashcard = async () => {
     try {
       await addFlashcard(deckId, newFlashcard);
@@ -125,7 +102,7 @@ const DeckView = () => {
       setNewFlashcard({ front_text: "", back_text: "" });
       setError("");
       await loadDeckAndFlashcards();
-    } catch (err) {
+    } catch {
       setError("Failed to add flashcard. Please try again.");
     }
   };
@@ -138,7 +115,7 @@ const DeckView = () => {
       );
       setModalOpen(false);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Failed to update flashcard. Please try again.");
     }
   };
@@ -148,7 +125,6 @@ const DeckView = () => {
     setDeleteConfirmationOpen(true);
   };
 
-  // ✅ After delete, reload to keep pagination correct and avoid drift
   const handleDeleteConfirm = async () => {
     if (!flashcardToDelete) return;
 
@@ -170,67 +146,38 @@ const DeckView = () => {
     setFlashcardToDelete(null);
   };
 
-  const handlePageChange = (_event, value) => {
-    setCurrentPage(value);
-    // loading will be set by the fetch effect
-  };
-
   if (userLoading || loading) {
     return (
-      <Box
-        sx={{
-          bgcolor: "background.default",
-          minHeight: "100vh",
-          pb: { xs: 4, sm: 8 },
-        }}
-      >
+      <div className="min-h-screen bg-background pb-8 md:pb-16">
         <NavBar />
-        <Container
-          maxWidth="xl"
-          sx={{
-            mt: { xs: 2, sm: 3, md: 4 },
-            px: { xs: 2, sm: 3, md: 4 },
-          }}
-        >
+        <div className="max-w-7xl mx-auto mt-4 md:mt-8 px-4 md:px-8">
           <LoadingState />
-        </Container>
-      </Box>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        minHeight: "100vh",
-        pb: { xs: 4, sm: 8 },
-      }}
-    >
+    <div className="min-h-screen bg-background pb-8 md:pb-16">
       <NavBar />
-      <Container
-        maxWidth="xl"
-        sx={{
-          mt: { xs: 2, sm: 3, md: 4 },
-          px: { xs: 2, sm: 3, md: 4 },
-        }}
-      >
+      <div className="max-w-7xl mx-auto mt-4 md:mt-8 px-4 md:px-8">
         <DeckHeader
           deck={deck}
           onAddFlashcard={handleAddFlashcard}
           navigate={navigate}
-          isMobile={isMobile}
-          // 🔹 allow refresh after AI inserts
           onRefresh={loadDeckAndFlashcards}
         />
 
         {error && (
-          <Alert
-            severity="error"
-            sx={{ mb: { xs: 2, sm: 3 } }}
-            onClose={() => setError("")}
-          >
-            {error}
-          </Alert>
+          <div className="mb-4 md:mb-6 bg-danger-soft border border-danger text-danger px-4 py-3 rounded-lg flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              onClick={() => setError("")}
+              className="text-text-muted hover:text-text-primary ml-4"
+            >
+              ×
+            </button>
+          </div>
         )}
 
         <FlashcardList
@@ -244,38 +191,49 @@ const DeckView = () => {
           deckId={deckId}
           onAddFlashcard={handleAddFlashcard}
           is_default={deck?.is_default}
-          isMobile={isMobile}
         />
 
         {totalPages > 1 && (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              mt: { xs: 3, sm: 4 },
-              mb: { xs: 2, sm: 3 },
-            }}
-          >
-            <Pagination
-              count={totalPages}
-              page={currentPage}
-              onChange={handlePageChange}
-              color="primary"
-              size={isMobile ? "small" : "medium"}
-              sx={{
-                "& .MuiPaginationItem-root": {
-                  color: "text.primary",
-                  "&.Mui-selected": {
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    "&:hover": {
-                      bgcolor: "primary.dark",
-                    },
-                  },
-                },
-              }}
-            />
-          </Box>
+          <div className="flex justify-center mt-6 md:mt-8 mb-4 md:mb-6">
+            <div className="flex gap-1">
+              {/* Previous Button */}
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 bg-surface-elevated hover:bg-surface-highlight disabled:bg-background-subtle disabled:text-text-subtle rounded-lg text-sm md:text-base transition-colors"
+              >
+                Previous
+              </button>
+
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 rounded-lg text-sm md:text-base transition-colors ${
+                      currentPage === page
+                        ? "bg-primary text-text-primary"
+                        : "bg-surface-elevated hover:bg-surface-highlight text-text-secondary"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+
+              {/* Next Button */}
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 bg-surface-elevated hover:bg-surface-highlight disabled:bg-background-subtle disabled:text-text-subtle rounded-lg text-sm md:text-base transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
 
         <EditFlashcardModal
@@ -288,7 +246,6 @@ const DeckView = () => {
           onSave={handleEditFlashcard}
           error={error}
           setError={setError}
-          isMobile={isMobile}
         />
 
         <AddFlashcardModal
@@ -302,7 +259,6 @@ const DeckView = () => {
           onSave={handleSaveFlashcard}
           error={error}
           setError={setError}
-          isMobile={isMobile}
         />
 
         <ConfirmationDialog
@@ -311,10 +267,9 @@ const DeckView = () => {
           onConfirm={handleDeleteConfirm}
           title="Delete Flashcard"
           message="Are you sure you want to delete this flashcard? This action cannot be undone."
-          isMobile={isMobile}
         />
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

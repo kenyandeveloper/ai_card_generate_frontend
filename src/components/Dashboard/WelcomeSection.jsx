@@ -1,14 +1,8 @@
-// src/components/Dashboard/WelcomeSection.jsx
-"use client";
-
-import { Box, Typography, Card, CardContent } from "@mui/material";
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp } from "lucide-react";
-import { useTheme } from "@mui/material/styles";
-import { useUser } from "../context/UserContext"; // adjust path if needed
+import { useUser } from "../../hooks/useUser";
 
 const WelcomeSection = ({ username }) => {
-  const theme = useTheme();
   const { user } = useUser?.() || {};
   const name =
     username || user?.username || user?.email?.split("@")[0] || "Learner";
@@ -21,79 +15,30 @@ const WelcomeSection = ({ username }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
+      className="bg-gradient-to-br from-surface-elevated to-primary-soft rounded-2xl shadow-xl border border-border-muted overflow-hidden relative"
     >
-      <Card
-        sx={{
-          background: (t) =>
-            `linear-gradient(135deg, ${t.palette.background.paper} 0%, rgba(99,102,241,0.08) 100%)`,
-          border: 1,
-          borderColor: "divider",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            top: -40,
-            right: -40,
-            width: 160,
-            height: 160,
-            background: (t) =>
-              `radial-gradient(circle, ${t.palette.primary.main}20 0%, transparent 70%)`,
-            borderRadius: "50%",
-          }}
-        />
-        <CardContent
-          sx={{ p: { xs: 3, sm: 4 }, position: "relative", zIndex: 1 }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 2,
-                background: (t) =>
-                  `linear-gradient(135deg, ${t.palette.primary.main}, ${
-                    t.palette.secondary.main || t.palette.primary.dark
-                  })`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Sparkles size={24} color="white" />
-            </Box>
+      {/* Decorative background circle */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-primary-soft rounded-full -translate-y-10 translate-x-10 blur-3xl" />
 
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                background: (t) =>
-                  `linear-gradient(135deg, ${t.palette.text.primary}, ${t.palette.primary.main})`,
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {greeting}, {name}!
-            </Typography>
-          </Box>
+      <div className="p-6 relative z-10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <Sparkles size={24} className="text-primary-foreground" />
+          </div>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <TrendingUp size={20} color={theme.palette.primary.main} />
-            <Typography
-              variant="body1"
-              sx={{
-                color: "text.secondary",
-                fontSize: { xs: "1rem", sm: "1.125rem" },
-              }}
-            >
-              Track your progress, review your decks, and continue your learning
-              journey.
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-text-primary via-primary to-secondary bg-clip-text text-transparent">
+            {greeting}, {name}!
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <TrendingUp size={20} className="text-secondary" />
+          <p className="text-text-secondary text-base md:text-lg">
+            Track your progress, review your decks, and continue your learning
+            journey.
+          </p>
+        </div>
+      </div>
     </motion.div>
   );
 };

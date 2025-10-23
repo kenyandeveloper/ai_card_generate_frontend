@@ -1,14 +1,3 @@
-"use client";
-
-import {
-  Grid,
-  Card,
-  Typography,
-  Button,
-  Box,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
 import { motion } from "framer-motion";
 import { Brain, PlayCircle, Plus } from "lucide-react";
 import FlashcardItem from "./FlashcardItem";
@@ -41,111 +30,49 @@ const FlashcardList = ({
   navigate,
   deckId,
   onAddFlashcard,
-  isMobile: propIsMobile,
 }) => {
-  const theme = useTheme();
-  const systemIsMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMobile = propIsMobile !== undefined ? propIsMobile : systemIsMobile;
-
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       {flashcards.length === 0 ? (
-        <Card
-          sx={{
-            borderRadius: { xs: 2, sm: 3 },
-            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-            p: { xs: 3, sm: 4, md: 6 },
-            textAlign: "center",
-            bgcolor: "background.paper",
-          }}
-        >
-          <Brain
-            size={isMobile ? 36 : 48}
-            color={theme.palette.primary.main}
-            style={{ marginBottom: isMobile ? 12 : 16 }}
-          />
-          <Typography
-            variant={isMobile ? "h6" : "h5"}
-            sx={{
-              color: "text.primary",
-              mb: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "1.1rem", sm: "1.5rem" },
-            }}
-          >
+        <div className="bg-surface-elevated rounded-2xl md:rounded-3xl shadow-lg p-6 md:p-8 lg:p-12 text-center">
+          <Brain size={48} className="text-primary mx-auto mb-4 md:mb-6" />
+          <h2 className="text-xl md:text-2xl font-bold text-text-primary mb-2 md:mb-4">
             No Flashcards Yet
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              color: "text.secondary",
-              mb: { xs: 3, sm: 4 },
-              fontSize: { xs: "0.875rem", sm: "1rem" },
-              px: { xs: 1, sm: 2, md: 4 },
-            }}
-          >
+          </h2>
+          <p className="text-text-muted mb-6 md:mb-8 text-sm md:text-base px-2 md:px-4 lg:px-8">
             Create your first flashcard and start learning!
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Plus size={isMobile ? 16 : 18} />}
+          </p>
+          <button
             onClick={onAddFlashcard}
-            size={isMobile ? "medium" : "large"}
-            sx={{
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-              borderRadius: { xs: 1.5, sm: 2 },
-              fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-              py: { xs: 1, sm: undefined },
-              px: { xs: 2, sm: 3 },
-              textTransform: "none",
-            }}
+            className="bg-primary hover:bg-primary-emphasis text-text-primary rounded-xl md:rounded-2xl px-4 md:px-6 py-2 md:py-3 text-sm md:text-base font-medium transition-colors inline-flex items-center gap-2"
           >
+            <Plus size={18} />
             Create Your First Flashcard
-          </Button>
-        </Card>
+          </button>
+        </div>
       ) : (
         <>
-          <Grid container spacing={{ xs: 2, sm: 2, md: 3 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {flashcards.map((flashcard) => (
-              <Grid item xs={12} sm={6} md={4} key={flashcard.id}>
-                <motion.div variants={itemVariants}>
-                  <FlashcardItem
-                    flashcard={flashcard}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    isMobile={isMobile}
-                  />
-                </motion.div>
-              </Grid>
+              <motion.div key={flashcard.id} variants={itemVariants}>
+                <FlashcardItem
+                  flashcard={flashcard}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              </motion.div>
             ))}
-          </Grid>
+          </div>
 
-          <Box sx={{ mt: { xs: 4, sm: 5, md: 6 }, textAlign: "center" }}>
-            <Button
-              variant="contained"
-              size={isMobile ? "medium" : "large"}
-              startIcon={<PlayCircle size={isMobile ? 18 : 20} />}
+          <div className="mt-8 md:mt-10 lg:mt-12 text-center">
+            <button
               onClick={() => navigate(`/study/${deckId}`)}
-              sx={{
-                bgcolor: "primary.main",
-                color: "primary.contrastText",
-                px: { xs: 4, sm: 5, md: 6 },
-                py: { xs: 1, sm: 1.5 },
-                "&:hover": {
-                  bgcolor: "primary.dark",
-                },
-                borderRadius: { xs: 1.5, sm: 2 },
-                fontSize: { xs: "0.875rem", sm: "1rem" },
-                textTransform: "none",
-              }}
+              className="bg-primary hover:bg-primary-emphasis text-text-primary rounded-xl md:rounded-2xl px-8 md:px-10 lg:px-12 py-2 md:py-3 text-sm md:text-base font-medium transition-colors inline-flex items-center gap-2"
             >
+              <PlayCircle size={20} />
               Start Studying
-            </Button>
-          </Box>
+            </button>
+          </div>
         </>
       )}
     </motion.div>

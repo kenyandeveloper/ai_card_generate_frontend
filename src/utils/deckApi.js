@@ -1,168 +1,124 @@
-const API_URL = import.meta.env.VITE_API_URL;
+import { deckApi } from "./apiClient";
 
 export const fetchDeckAndFlashcards = async (
   deckId,
   page = 1,
   perPage = 10
 ) => {
-  const token = localStorage.getItem("authToken");
-  // Check if deckId is valid
   if (!deckId) {
     throw new Error("Deck ID is required");
   }
 
-  const deckResponse = await fetch(`${API_URL}/decks/${deckId}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const [deckData, cardsData] = await Promise.all([
+    deckApi.get(deckId),
+    deckApi.listFlashcards({
+      deck_id: deckId,
+      page,
+      per_page: perPage,
+    }),
+  ]);
+
+  const flashcardsData = Array.isArray(cardsData)
+    ? cardsData
+    : Array.isArray(cardsData?.items)
+    ? cardsData.items
+    : [];
+
+  const pagination = normalizePagination(cardsData?.pagination, {
+    page,
+    per_page: perPage,
+    total_pages: 1,
+    total_items: flashcardsData.length,
   });
-
-  if (!deckResponse.ok) throw new Error("Failed to fetch deck details");
-  const deckData = await deckResponse.json();
-
-  const cardsResponse = await fetch(
-    `${API_URL}/flashcards?deck_id=${deckId}&page=${page}&per_page=${perPage}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
-
-  if (!cardsResponse.ok) throw new Error("Failed to fetch flashcards");
-  const cardsData = await cardsResponse.json();
-
-  if (cardsData.message === "No flashcards found.") {
-    return {
-      deckData,
-      flashcardsData: [],
-      pagination: {
-        page: 1,
-        per_page: perPage,
-        total_pages: 1,
-        total_items: 0,
-        has_next: false,
-        has_prev: false,
-      },
-    };
-  }
-
-  if (!Array.isArray(cardsData.items)) {
-    return {
-      deckData,
-      flashcardsData: [],
-      pagination: cardsData.pagination,
-    };
-  }
-
-  const flashcardsData = Array.isArray(cardsData.items) ? cardsData.items : [];
 
   return {
     deckData,
     flashcardsData,
-    pagination: cardsData.pagination,
+    pagination,
   };
 };
 
-export const addFlashcard = async (deckId, newFlashcard) => {
-  const token = localStorage.getItem("authToken");
-  const response = await fetch(`${API_URL}/flashcards`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      deck_id: Number.parseInt(deckId),
-      front_text: newFlashcard.front_text,
-      back_text: newFlashcard.back_text,
-    }),
+export const addFlashcard = (deckId, newFlashcard) =>
+  deckApi.createFlashcard({
+    deck_id: Number.parseInt(deckId, 10),
+    front_text: newFlashcard.front_text,
+    back_text: newFlashcard.back_text,
   });
 
-  if (!response.ok) throw new Error("Failed to add flashcard");
-  return response.json();
-};
-
-export const updateFlashcard = async (flashcard) => {
-  const token = localStorage.getItem("authToken");
-  console.log(flashcard);
-  const response = await fetch(`${API_URL}/flashcards/${flashcard.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      front_text: flashcard.front_text,
-      back_text: flashcard.back_text,
-    }),
+export const updateFlashcard = (flashcard) =>
+  deckApi.updateFlashcard(flashcard.id, {
+    front_text: flashcard.front_text,
+    back_text: flashcard.back_text,
   });
 
-  if (!response.ok) throw new Error("Failed to update flashcard");
-  return response.json();
+export const deleteFlashcard = (flashcardId) =>
+  deckApi.deleteFlashcard(flashcardId);
+
+export const createOrUpdateDeck = (deck, isEditing) => {
+  if (isEditing && deck?.id) {
+    return deckApi.update(deck.id, deck);
+  }
+  return deckApi.create(deck);
 };
 
-export const deleteFlashcard = async (flashcardId) => {
-  const token = localStorage.getItem("authToken");
-  const response = await fetch(`${API_URL}/flashcards/${flashcardId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const normalizePagination = (pagination, fallback = {}) => {
+  const base = {
+    current_page: fallback.current_page ?? fallback.page ?? 1,
+    page: fallback.page ?? fallback.current_page ?? 1,
+    per_page: fallback.per_page ?? 10,
+    total_pages: fallback.total_pages ?? 1,
+    total_items: fallback.total_items ?? 0,
+    has_next: fallback.has_next ?? false,
+    has_prev: fallback.has_prev ?? false,
+  };
 
-  if (!response.ok) throw new Error("Failed to delete flashcard");
+  if (!pagination) {
+    return base;
+  }
+
+  return {
+    ...base,
+    ...pagination,
+    current_page: pagination.current_page ?? pagination.page ?? base.current_page,
+    page: pagination.page ?? pagination.current_page ?? base.page,
+    per_page: pagination.per_page ?? base.per_page,
+    total_pages: pagination.total_pages ?? base.total_pages,
+    total_items: pagination.total_items ?? base.total_items,
+  };
 };
 
-export const createOrUpdateDeck = async (deck, isEditing) => {
-  const token = localStorage.getItem("authToken");
-  const method = isEditing ? "PUT" : "POST";
-  const url = isEditing ? `${API_URL}/decks/${deck.id}` : `${API_URL}/decks`;
-
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(deck),
-  });
-
-  if (!response.ok) throw new Error("Failed to save deck");
-  return response.json();
-};
-
-export const fetchDecks = async (token, page = 1, perPage = 10) => {
+export const fetchDecks = async (_token, page = 1, perPage = 10) => {
   try {
-    const response = await fetch(
-      `${API_URL}/decks?page=${page}&per_page=${perPage}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const data = await deckApi.list({ page, per_page: perPage });
+    const decks = Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data)
+      ? data
+      : [];
+    const pagination = normalizePagination(data?.pagination, {
+      page,
+      per_page: perPage,
+      total_pages: 1,
+      total_items: decks.length,
+    });
 
-    if (!response.ok) throw new Error("Failed to fetch decks");
-
-    const data = await response.json();
     return {
-      decks: Array.isArray(data.items) ? data.items : [],
-      pagination: data.pagination,
+      decks,
+      pagination,
     };
-  } catch (error) {
+  } catch {
     return {
       decks: [],
-      pagination: {
+      pagination: normalizePagination(null, {
         page: 1,
         per_page: perPage,
         total_pages: 1,
         total_items: 0,
         has_next: false,
         has_prev: false,
-      },
+      }),
     };
   }
 };
 
-export const deleteDeck = async (deckId) => {
-  const token = localStorage.getItem("authToken");
-  const response = await fetch(`${API_URL}/decks/${deckId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!response.ok) throw new Error("Failed to delete deck");
-};
+export const deleteDeck = (deckId) => deckApi.remove(deckId);

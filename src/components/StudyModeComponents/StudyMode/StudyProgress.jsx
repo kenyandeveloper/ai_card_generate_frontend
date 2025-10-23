@@ -1,37 +1,19 @@
-import { Box, Typography, LinearProgress } from "@mui/material";
-
 const StudyProgress = ({ currentIndex, totalCards, progressPercentage }) => {
   return (
-    <Box sx={{ mb: 4 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          Progress
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+    <div className="mb-8">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-text-muted text-sm">Progress</span>
+        <span className="text-text-muted text-sm">
           {currentIndex + 1} of {totalCards} cards
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
-        value={progressPercentage}
-        sx={{
-          height: 8,
-          borderRadius: 4,
-          bgcolor: "background.paper",
-          "& .MuiLinearProgress-bar": {
-            bgcolor: "primary.main",
-            borderRadius: 4,
-          },
-        }}
-      />
-    </Box>
+        </span>
+      </div>
+      <div className="w-full bg-surface-highlight rounded-full h-2">
+        <div
+          className="bg-primary rounded-full h-2 transition-all duration-300"
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+    </div>
   );
 };
 

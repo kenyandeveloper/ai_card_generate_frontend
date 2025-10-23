@@ -1,24 +1,25 @@
-"use client";
+// MyDecks.jsx (Vite + Tailwind, dark mode only)
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext";
-import { Box, Container, useTheme, useMediaQuery } from "@mui/material";
+import { useUser } from "../../hooks/useUser";
+
 import NavBar from "../NavBar";
-import useDecks from "./useDecks";
 import useDeckManagement from "./DeckManagement";
 import MyDecksSkeleton from "./MyDecksSkeleton";
-import ErrorHandler from "./ErrorHandler";
 import Header from "./Header";
 import FilterSort from "./FilterSort";
 import DecksGrid from "./DecksGrid";
 import DeckModal from "./DeckModal";
 import ConfirmationDialog from "./ConfirmationDialog";
+import { useDecks as useDecksStore } from "../../hooks/useDecks";
+import { DataFetchWrapper } from "../common/DataFetchWrapper";
+import { DeckCardSkeleton } from "../common/LoadingSkeleton";
+import { ErrorAlert, InlineError } from "../common/ErrorAlert";
+import { showError, showSuccess } from "../common/ErrorSnackbar";
 
-const MyDecks = () => {
+export default function MyDecks() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { user, isAuthenticated, loading: userLoading } = useUser();
+  const { isAuthenticated, loading: userLoading } = useUser();
 
   // State
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,23 +31,27 @@ const MyDecks = () => {
   });
   const [sortBy, setSortBy] = useState("title");
   const [formError, setFormError] = useState("");
+  const [savingDeck, setSavingDeck] = useState(false);
+  const [deletingDeck, setDeletingDeck] = useState(false);
 
   const decksPerPage = 6;
   const {
     decks,
     loading,
     error: decksError,
-    totalPages,
-    handleCreateOrUpdate,
-    handleDelete,
-  } = useDecks(user, currentPage, decksPerPage);
+    createDeck,
+    updateDeck,
+    deleteDeck,
+    refetch,
+  } = useDecksStore({
+    enabled: Boolean(isAuthenticated),
+  });
 
   const deckManagement = useDeckManagement();
 
-  // Filter and sort decks
+  // Filter & sort
   const filteredAndSortedDecks = useMemo(() => {
     if (!Array.isArray(decks)) return [];
-
     return decks
       .filter((deck) => {
         const matchesSubject =
@@ -75,32 +80,45 @@ const MyDecks = () => {
       });
   }, [decks, filter, sortBy]);
 
-  // Derived data
+  // Derived
   const subjects = useMemo(
-    () => [...new Set(decks.map((deck) => deck.subject))],
+    () => [...new Set((decks || []).map((d) => d.subject).filter(Boolean))],
+    [decks]
+  );
+  const categories = useMemo(
+    () => [...new Set((decks || []).map((d) => d.category).filter(Boolean))],
     [decks]
   );
 
-  const categories = useMemo(
-    () => [...new Set(decks.map((deck) => deck.category))],
-    [decks]
-  );
+  const totalPages = useMemo(() => {
+    if (filteredAndSortedDecks.length === 0) return 1;
+    return Math.ceil(filteredAndSortedDecks.length / decksPerPage) || 1;
+  }, [filteredAndSortedDecks, decksPerPage]);
+
+  const paginatedDecks = useMemo(() => {
+    const start = (currentPage - 1) * decksPerPage;
+    return filteredAndSortedDecks.slice(start, start + decksPerPage);
+  }, [filteredAndSortedDecks, currentPage, decksPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // Handlers
   const handlePageChange = (_, value) => {
+    if (value < 1 || value > totalPages) return;
     setCurrentPage(value);
   };
-
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
     setCurrentPage(1);
   };
-
   const handleSortChange = (newSortBy) => {
     setSortBy(newSortBy);
     setCurrentPage(1);
   };
-
   const handleStudyDeck = (event, deckId) => {
     event.stopPropagation();
     navigate(`/study/${deckId}`);
@@ -111,61 +129,71 @@ const MyDecks = () => {
       setFormError("Deck title is required");
       return;
     }
-
-    const deckData = {
-      id: deckManagement.editingDeck?.id,
+    const payload = {
       title: deckManagement.deckTitle,
       description: deckManagement.deckDescription,
       subject: deckManagement.deckSubject,
       category: deckManagement.deckCategory,
       difficulty: deckManagement.deckDifficulty,
     };
-
-    const success = await handleCreateOrUpdate(
-      deckData,
-      !!deckManagement.editingDeck
-    );
-    if (success) {
+    try {
+      setSavingDeck(true);
+      if (deckManagement.editingDeck?.id) {
+        await updateDeck(deckManagement.editingDeck.id, payload);
+        showSuccess("Deck updated successfully!");
+      } else {
+        await createDeck(payload);
+        showSuccess("Deck created successfully!");
+      }
       deckManagement.handleCloseModal();
+      setFormError("");
+    } catch (error) {
+      const message =
+        error?.message || "An error occurred while saving the deck.";
+      setFormError(message);
+      showError(message);
+    } finally {
+      setSavingDeck(false);
+      deckManagement.resetForm?.();
+    }
+  };
+
+  const handleDelete = async (deckId) => {
+    try {
+      setDeletingDeck(true);
+      await deleteDeck(deckId);
+      showSuccess("Deck deleted successfully!");
+    } catch (error) {
+      const message =
+        error?.message || "An error occurred while deleting the deck.";
+      setFormError(message);
+      showError(message);
+      throw error;
+    } finally {
+      setDeletingDeck(false);
     }
   };
 
   // Auth redirect
   useEffect(() => {
-    if (!userLoading && !isAuthenticated) {
-      navigate("/login");
-    }
+    if (!userLoading && !isAuthenticated) navigate("/login");
   }, [userLoading, isAuthenticated, navigate]);
 
-  // Loading state
-  if (userLoading || loading) {
-    return <MyDecksSkeleton isMobile={isMobile} />;
+  // Loading
+  if (userLoading) {
+    // TODO: Update MyDecksSkeleton to not accept isMobile; purely CSS responsive.
+    return <MyDecksSkeleton />;
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        minHeight: "100vh",
-        pb: { xs: 4, sm: 8 },
-      }}
-    >
+    <div className="min-h-screen bg-background pb-16 sm:pb-24">
       <NavBar />
-      <Container
-        maxWidth="xl"
-        sx={{ mt: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3, md: 4 } }}
-      >
-        <Header
-          onCreateDeck={() => deckManagement.setModalOpen(true)}
-          isMobile={isMobile}
-        />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-3 sm:mt-4 md:mt-6">
+        <Header onCreateDeck={() => deckManagement.setModalOpen(true)} />
 
-        <ErrorHandler
-          error={decksError || formError}
-          onClose={() => {
-            setFormError("");
-            // If you have a way to reset deck error, add here
-          }}
+        <ErrorAlert
+          message={decksError}
+          onRetry={() => refetch()}
         />
 
         <FilterSort
@@ -175,23 +203,28 @@ const MyDecks = () => {
           setFilter={handleFilterChange}
           sortBy={sortBy}
           setSortBy={handleSortChange}
-          isMobile={isMobile}
         />
 
-        <DecksGrid
-          decks={decks}
-          filteredDecks={filteredAndSortedDecks}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          isMobile={isMobile}
-          onEdit={deckManagement.handleEditDeck}
-          onDelete={deckManagement.handleDeleteDeck}
-          onStudy={handleStudyDeck}
-          onPageChange={handlePageChange}
-          onCreateDeck={() => deckManagement.setModalOpen(true)}
-          theme={theme}
-          navigate={navigate}
-        />
+        <DataFetchWrapper
+          loading={loading}
+          error={decksError}
+          onRetry={() => refetch()}
+          loadingComponent={<DeckCardSkeleton count={decksPerPage} />}
+          emptyMessage="No decks yet. Create your first deck!"
+          isEmpty={Array.isArray(decks) && decks.length === 0}
+        >
+          <DecksGrid
+            decks={decks}
+            filteredDecks={paginatedDecks}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onEdit={deckManagement.handleEditDeck}
+            onDelete={deckManagement.handleDeleteDeck}
+            onStudy={handleStudyDeck}
+            onPageChange={handlePageChange}
+            onCreateDeck={() => deckManagement.setModalOpen(true)}
+          />
+        </DataFetchWrapper>
 
         <DeckModal
           open={deckManagement.modalOpen}
@@ -207,9 +240,8 @@ const MyDecks = () => {
           setDeckCategory={deckManagement.setDeckCategory}
           deckDifficulty={deckManagement.deckDifficulty}
           setDeckDifficulty={deckManagement.setDeckDifficulty}
-          error={formError}
           onSave={handleCreateOrUpdateDeck}
-          isMobile={isMobile}
+          saving={savingDeck}
         />
 
         <ConfirmationDialog
@@ -218,10 +250,11 @@ const MyDecks = () => {
           onConfirm={() => deckManagement.handleDeleteConfirm(handleDelete)}
           title="Delete Deck"
           message="Are you sure you want to delete this deck? This action cannot be undone."
+          loading={deletingDeck}
         />
-      </Container>
-    </Box>
-  );
-};
 
-export default MyDecks;
+        <InlineError message={formError} className="mt-4" />
+      </main>
+    </div>
+  );
+}

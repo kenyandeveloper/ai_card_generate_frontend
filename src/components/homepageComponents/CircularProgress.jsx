@@ -28,13 +28,13 @@ export default function CircularProgress({ percentage, label, size = 120 }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#3b82f6"
+            stroke="currentColor"
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            className="transition-all duration-500 ease-out"
+            className="text-primary transition-all duration-500 ease-out"
           />
         </svg>
 
@@ -45,7 +45,7 @@ export default function CircularProgress({ percentage, label, size = 120 }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary">
               {percentage}%
             </span>
           </motion.div>
@@ -59,7 +59,7 @@ export default function CircularProgress({ percentage, label, size = 120 }) {
         transition={{ delay: 0.7 }}
         className="w-full text-center mt-2 sm:mt-4"
       >
-        <p className="text-sm sm:text-base text-gray-400 font-medium">
+        <p className="text-sm sm:text-base text-text-muted font-medium">
           {label}
         </p>
       </motion.div>

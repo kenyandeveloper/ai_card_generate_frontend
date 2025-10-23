@@ -1,57 +1,48 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import {
-  Container,
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
-  Button,
-  Alert,
-  MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TableContainer,
-  Paper,
-  Pagination,
-  Checkbox,
-  Toolbar,
-  Stack,
-  Divider,
-} from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Download } from "lucide-react";
 import {
   getAdminStats,
-  getOnlineUsers,
   listUsers,
   deleteUsers,
+  createTeacherInvite,
+  batchCreateDemoUsers,
 } from "../../utils/adminApi";
-
 import { formatEAT } from "../../utils/time";
+import { handleApiError } from "../../services/errorHandler";
+import { redeemTeacherCode } from "../../utils/teacherApi";
+import { DataFetchWrapper } from "../common/DataFetchWrapper";
+import { LoadingSkeleton, TableRowSkeleton } from "../common/LoadingSkeleton";
+import { InlineSpinner } from "../common/LoadingSpinner";
+import { showError, showSuccess } from "../common/ErrorSnackbar";
 
-// Reuse the same envs your helper uses for the one endpoint we call locally
-const API_URL = import.meta.env.VITE_API_URL;
 const ADMIN_KEY = import.meta.env?.VITE_ADMIN_API_KEY || "";
 
 function StatCard({ label, value }) {
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
-        <Typography variant="overline" color="text.secondary">
-          {label}
-        </Typography>
-        <Typography variant="h5" sx={{ mt: 0.5 }}>
-          {value}
-        </Typography>
-      </CardContent>
-    </Card>
+    <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted h-full">
+      <div className="text-xs uppercase text-text-muted tracking-wide font-medium">
+        {label}
+      </div>
+      <div className="text-3xl font-bold mt-2 text-text-primary">{value}</div>
+    </div>
+  );
+}
+
+function Alert({ severity, children }) {
+  const colors = {
+    warning: "bg-warning-soft border-warning text-warning",
+    error: "bg-danger-soft border-danger text-danger",
+    success: "bg-success-soft border-success text-success",
+    info: "bg-secondary-soft border-secondary text-secondary",
+  };
+
+  return (
+    <div
+      className={`rounded-lg border p-4 flex items-start gap-3 ${colors[severity]}`}
+    >
+      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+      <div className="flex-1">{children}</div>
+    </div>
   );
 }
 
@@ -59,116 +50,166 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold" }}>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6 text-text-primary">
         Admin Dashboard
-      </Typography>
+      </h1>
 
-      {!ADMIN_KEY ? (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+      {!ADMIN_KEY && (
+        <Alert severity="warning">
           <strong>VITE_ADMIN_API_KEY</strong> is not set. Admin calls will fail.
         </Alert>
-      ) : null}
+      )}
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Overview" />
-        <Tab label="Create Demo Users" />
-        <Tab label="Users" />
-      </Tabs>
+      <div className="border-b border-border-muted mb-6">
+        <div className="flex gap-1">
+          {["Overview", "Create Demo Users", "Users", "Teacher Invites"].map(
+            (label, i) => (
+              <button
+                key={i}
+                onClick={() => setTab(i)}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  tab === i
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {label}
+              </button>
+            )
+          )}
+        </div>
+      </div>
 
       {tab === 0 && <OverviewTab />}
       {tab === 1 && <CreateDemoTab />}
       {tab === 2 && <UsersTab />}
-    </Container>
+      {tab === 3 && <TeacherInvitesTab />}
+    </div>
   );
 }
 
 /* ---------------------------- Overview Tab ---------------------------- */
 
 function OverviewTab() {
-  const [within, setWithin] = useState(5); // minutes window for "online"
+  const [within, setWithin] = useState(5);
   const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
+  const [loadingStats, setLoadingStats] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setErr("");
+      setLoadingStats(true);
       const data = await getAdminStats(within);
       setStats(data);
+      hasLoadedRef.current = true;
     } catch (e) {
-      setErr(e.message || "Failed to load stats");
+      const message = e.message || "Failed to load stats";
+      setErr(message);
+      if (!hasLoadedRef.current) {
+        showError(message);
+      }
+    } finally {
+      setLoadingStats(false);
     }
-  };
-
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 15000); // refresh every 15s
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [within]);
 
-  if (err) return <Alert severity="error">{err}</Alert>;
-  if (!stats) return <Typography>Loading…</Typography>;
+  // 🔁 Safer polling: no overlapping requests, respects tab visibility, 2-minute cadence
+  useEffect(() => {
+    const POLL_MS = 2 * 60 * 1000; // 120,000 ms
+    let cancelled = false;
+    let timer;
 
-  const unverified = (stats.total_users || 0) - (stats.verified_users || 0);
+    const schedule = () => {
+      timer = setTimeout(tick, POLL_MS);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      // Skip work if the tab is hidden; just reschedule
+      if (!document.hidden) {
+        await load();
+      }
+      if (!cancelled) schedule();
+    };
+
+    // Immediate fetch on mount / when `load` changes
+    load();
+    // Start the polling loop
+    schedule();
+
+    // If the tab becomes visible, do a prompt refresh
+    const onVisible = () => {
+      if (cancelled) return;
+      if (!document.hidden) {
+        clearTimeout(timer);
+        tick(); // run now, then it will reschedule itself
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
+
+  const unverified = (stats?.total_users || 0) - (stats?.verified_users || 0);
 
   return (
-    <Box>
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Total" value={stats.total_users} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Verified" value={stats.verified_users} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Unverified" value={unverified} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Demo" value={stats.demo_users} />
-        </Grid>
-      </Grid>
+    <DataFetchWrapper
+      loading={!stats && loadingStats}
+      error={err}
+      onRetry={load}
+      loadingComponent={<LoadingSkeleton count={4} height={80} />}
+    >
+      {stats && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <StatCard label="Total" value={stats.total_users} />
+            <StatCard label="Verified" value={stats.verified_users} />
+            <StatCard label="Unverified" value={unverified} />
+            <StatCard label="Demo" value={stats.demo_users} />
+          </div>
 
-      <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} sm={6}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                spacing={2}
-                sx={{ mb: 1 }}
-              >
-                <Typography variant="overline" color="text.secondary">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border-muted bg-surface-elevated p-6">
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-text-muted">
                   Online (≈{stats.within_minutes}m)
-                </Typography>
-                <TextField
-                  size="small"
-                  label="Window (minutes)"
-                  type="number"
-                  sx={{ width: 160 }}
-                  value={within}
-                  onChange={(e) =>
-                    setWithin(
-                      Math.max(1, Math.min(120, Number(e.target.value) || 5))
-                    )
-                  }
-                />
-              </Stack>
-              <Typography variant="h5">{stats.online_now}</Typography>
-              <Typography variant="body2" sx={{ mt: 1 }} color="text.secondary">
+                </div>
+                <div className="flex flex-col">
+                  <label className="mb-1 text-xs text-text-muted">
+                    Window (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-40 rounded border border-border-muted bg-background-subtle px-3 py-1.5 text-sm text-text-primary"
+                    value={within}
+                    onChange={(e) =>
+                      setWithin(
+                        Math.max(1, Math.min(120, Number(e.target.value) || 5))
+                      )
+                    }
+                  />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-text-primary">
+                {stats.online_now}
+              </div>
+              <p className="mt-2 text-sm text-text-muted">
                 Active last {stats.within_minutes} minute(s)
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              </p>
+            </div>
 
-        <Grid item xs={12} sm={6}>
-          <StatCard label="New (24h)" value={stats.new_last_24h} />
-        </Grid>
-      </Grid>
-    </Box>
+            <StatCard label="New (24h)" value={stats.new_last_24h} />
+          </div>
+        </div>
+      )}
+    </DataFetchWrapper>
   );
 }
 
@@ -203,7 +244,6 @@ function CreateDemoTab() {
     URL.revokeObjectURL(url);
   };
 
-  // Local call (only this endpoint; others rely on utils/adminApi.js)
   const createBatch = async () => {
     try {
       setErr("");
@@ -216,151 +256,166 @@ function CreateDemoTab() {
         expires_in_days: Number(expires) || undefined,
         password: fixedPw || undefined,
       };
-      const res = await fetch(`${API_URL}/admin/demo/batch_create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Key": ADMIN_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await batchCreateDemoUsers(payload);
       setResult(data);
+      showSuccess(
+        `Created ${data.count} demo user${data.count === 1 ? "" : "s"}`
+      );
     } catch (e) {
-      setErr(e.message || "Failed to create demo users");
+      const apiError = handleApiError(e);
+      const message = apiError.message || "Failed to create demo users";
+      setErr(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box>
-      {err && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
-        </Alert>
-      )}
+    <div className="space-y-6">
+      {err && <Alert severity="error">{err}</Alert>}
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Count"
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm text-text-muted mb-1">Count</label>
+          <input
             type="number"
-            fullWidth
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={count}
             onChange={(e) => setCount(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Prefix"
-            fullWidth
+        </div>
+        <div>
+          <label className="block text-sm text-text-muted mb-1">Prefix</label>
+          <input
+            type="text"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Email domain"
-            fullWidth
+        </div>
+        <div>
+          <label className="block text-sm text-text-muted mb-1">
+            Email domain
+          </label>
+          <input
+            type="text"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            label="Expires in (days)"
+        </div>
+        <div>
+          <label className="block text-sm text-text-muted mb-1">
+            Expires in (days)
+          </label>
+          <input
             type="number"
-            fullWidth
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={expires}
             onChange={(e) => setExpires(e.target.value)}
           />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label="Fixed password (optional)"
-            fullWidth
-            value={fixedPw}
-            onChange={(e) => setFixedPw(e.target.value)}
-          />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
-      <Button variant="contained" onClick={createBatch} disabled={loading}>
-        {loading ? "Creating…" : "Create demo users"}
-      </Button>
+      <div>
+        <label className="block text-sm text-text-muted mb-1">
+          Fixed password (optional)
+        </label>
+        <input
+          type="text"
+          className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
+          value={fixedPw}
+          onChange={(e) => setFixedPw(e.target.value)}
+        />
+      </div>
 
-      {result?.users?.length ? (
-        <Box sx={{ mt: 3 }}>
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Created {result.count} users
-          </Alert>
+      <button
+        onClick={createBatch}
+        disabled={loading}
+        className="flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 font-medium transition-colors bg-primary hover:bg-primary-emphasis disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loading ? (
+          <>
+            <InlineSpinner size={18} />
+            Creating…
+          </>
+        ) : (
+          "Create demo users"
+        )}
+      </button>
 
-          <TableContainer component={Paper} sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Username</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Password</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+      {result?.users?.length > 0 && (
+        <div className="space-y-4">
+          <Alert severity="success">Created {result.count} users</Alert>
+
+          <div className="bg-surface-elevated rounded-xl border border-border-muted overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border-muted bg-background-subtle/50">
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                    Username
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                    Email
+                  </th>
+                  <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                    Password
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {result.users.map((u) => (
-                  <TableRow key={u.email}>
-                    <TableCell>{u.username}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.password}</TableCell>
-                  </TableRow>
+                  <tr
+                    key={u.email}
+                    className="border-b border-border-muted/50 hover:bg-surface-highlight/40"
+                  >
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.username}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">{u.email}</td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.password}
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </tbody>
+            </table>
+          </div>
 
           {asCSV && (
-            <Button variant="outlined" onClick={downloadCSV}>
+            <button
+              onClick={downloadCSV}
+              className="flex items-center gap-2 border border-border-muted hover:bg-surface-elevated px-6 py-2.5 rounded-lg font-medium transition-colors"
+            >
+              <Download className="w-4 h-4" />
               Download CSV
-            </Button>
+            </button>
           )}
-        </Box>
-      ) : null}
-    </Box>
+        </div>
+      )}
+    </div>
   );
 }
 
 /* ------------------------------- Users Tab ------------------------------ */
 
 function UsersTab() {
-  // Filters
   const [type, setType] = useState("all");
   const [q, setQ] = useState("");
   const [activeWithin, setActiveWithin] = useState("");
-
-  // Paging
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
-
-  // Data
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Selection for deletes
   const [selected, setSelected] = useState(new Set());
-
-  // Slow-mode demo knobs
-  const [commitPer, setCommitPer] = useState("row"); // 'user' or 'row'
-  const [sleepMs, setSleepMs] = useState(20); // 0..N
+  const [commitPer, setCommitPer] = useState("row");
+  const [sleepMs, setSleepMs] = useState(20);
   const [echoSql, setEchoSql] = useState(true);
+  const [opInfo, setOpInfo] = useState(null);
 
-  // Last operation result (for UI feedback)
-  const [opInfo, setOpInfo] = useState(null); // { performance, timing_seconds, related_records_deleted, ... }
-
-  const paramsForList = () => {
+  const paramsForList = useCallback(() => {
     const params = {
       limit: perPage,
       offset: (page - 1) * perPage,
@@ -368,19 +423,17 @@ function UsersTab() {
     };
     if (q.trim()) params.q = q.trim();
     if (activeWithin) params.active_within = Number(activeWithin);
-
     if (type === "demo") params.is_demo = true;
     else if (type === "verified") params.email_verified = true;
     else if (type === "unverified") params.email_verified = false;
-
     return params;
-  };
+  }, [perPage, page, q, activeWithin, type]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setErr("");
       setLoading(true);
-      setSelected(new Set()); // clear selection on reload
+      setSelected(new Set());
       const res = await listUsers(paramsForList());
       setData(res);
     } catch (e) {
@@ -388,12 +441,11 @@ function UsersTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paramsForList]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, q, page, perPage, activeWithin]);
+  }, [load]);
 
   const totalPages = Math.max(1, Math.ceil((data?.total || 0) / perPage));
   const items = data?.items || [];
@@ -423,8 +475,6 @@ function UsersTab() {
 
     try {
       setOpInfo(null);
-
-      // 1) Dry-run preview (with same knobs)
       const preview = await deleteUsers(emails, {
         strategy,
         commit_per: commitPer,
@@ -454,10 +504,8 @@ function UsersTab() {
         .filter(Boolean)
         .join("\n");
 
-      // eslint-disable-next-line no-alert
       if (!window.confirm(msg)) return;
 
-      // 2) Actual delete
       const res = await deleteUsers(emails, {
         strategy,
         commit_per: commitPer,
@@ -474,87 +522,78 @@ function UsersTab() {
         not_found: res.not_found?.length || 0,
       });
 
-      // eslint-disable-next-line no-alert
-      alert(
-        [
-          `Mode: ${res.performance}`,
-          `Time: ${res.timing_seconds ?? "?"}s`,
-          `Deleted: ${res.deleted?.length || 0}`,
-          res.related
-            ? `Children → progress=${res.related.progress ?? "-"}, flashcards=${
-                res.related.flashcards ?? "-"
-              }, decks=${res.related.decks ?? "-"}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-      );
+      const summary = [
+        `Mode: ${res.performance}`,
+        `Time: ${res.timing_seconds ?? "?"}s`,
+        `Deleted: ${res.deleted?.length || 0}`,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+      showSuccess(summary);
 
       await load();
     } catch (e) {
-      // eslint-disable-next-line no-alert
-      alert(e.message || "Delete failed");
+      showError(e.message || "Delete failed");
     }
   }
 
   return (
-    <Box>
-      {err && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
-        </Alert>
-      )}
+    <div className="space-y-6">
+      {err && <Alert severity="error">{err}</Alert>}
 
-      {/* Filters & paging */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={3}>
-          <TextField
-            select
-            label="Type"
-            fullWidth
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+        <div>
+          <label className="block text-sm text-text-muted mb-1">Type</label>
+          <select
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={type}
             onChange={(e) => {
               setPage(1);
               setType(e.target.value);
             }}
           >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="demo">Demo</MenuItem>
-            <MenuItem value="verified">Verified</MenuItem>
-            <MenuItem value="unverified">Unverified</MenuItem>
-          </TextField>
-        </Grid>
+            <option value="all">All</option>
+            <option value="demo">Demo</option>
+            <option value="verified">Verified</option>
+            <option value="unverified">Unverified</option>
+          </select>
+        </div>
 
-        <Grid item xs={12} sm={3}>
-          <TextField
-            label="Active within (mins)"
-            fullWidth
+        <div>
+          <label className="block text-sm text-text-muted mb-1">
+            Active within (mins)
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. 5"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={activeWithin}
             onChange={(e) => {
               setPage(1);
               setActiveWithin(e.target.value);
             }}
-            placeholder="e.g. 5"
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Search (email or username)"
-            fullWidth
+        <div className="md:col-span-2">
+          <label className="block text-sm text-text-muted mb-1">
+            Search (email or username)
+          </label>
+          <input
+            type="text"
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={q}
             onChange={(e) => {
               setPage(1);
               setQ(e.target.value);
             }}
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={6} sm={1}>
-          <TextField
-            select
-            label="Per page"
-            fullWidth
+        <div>
+          <label className="block text-sm text-text-muted mb-1">Per page</label>
+          <select
+            className="w-full bg-surface-elevated border border-border-muted rounded-lg px-4 py-2 text-text-primary"
             value={perPage}
             onChange={(e) => {
               setPage(1);
@@ -562,207 +601,405 @@ function UsersTab() {
             }}
           >
             {[10, 20, 50, 100, 1000].map((n) => (
-              <MenuItem key={n} value={n}>
+              <option key={n} value={n}>
                 {n}
-              </MenuItem>
+              </option>
             ))}
-          </TextField>
-        </Grid>
+          </select>
+        </div>
 
-        <Grid item xs={6} sm={1} sx={{ display: "flex", alignItems: "center" }}>
-          <Button
-            variant="outlined"
+        <div className="flex items-end">
+          <button
             onClick={load}
             disabled={loading}
-            fullWidth
+            className="w-full border border-border-muted hover:bg-surface-elevated disabled:bg-background-subtle disabled:text-text-subtle px-4 py-2 rounded-lg font-medium transition-colors"
           >
             {loading ? "…" : "Refresh"}
-          </Button>
-        </Grid>
-      </Grid>
+          </button>
+        </div>
+      </div>
 
-      {/* Delete toolbar with FAST/SLOW buttons and slow knobs */}
-      <Toolbar
-        disableGutters
-        sx={{
-          mb: 1,
-          minHeight: "unset !important",
-          display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-t border-b border-border-muted">
+        <p className="text-sm text-text-muted">
           {data?.total ?? 0} total • {items.length} shown
-        </Typography>
+        </p>
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems="center"
-        >
-          {/* Slow knobs (only affect slow strategy) */}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <TextField
-              select
-              size="small"
-              label="Commit per"
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-text-muted">Commit per</label>
+            <select
+              className="bg-surface-elevated border border-border-muted rounded px-3 py-1.5 text-sm text-text-primary"
               value={commitPer}
               onChange={(e) => setCommitPer(e.target.value)}
-              sx={{ width: 150 }}
             >
-              <MenuItem value="user">user</MenuItem>
-              <MenuItem value="row">row</MenuItem>
-            </TextField>
+              <option value="user">user</option>
+              <option value="row">row</option>
+            </select>
+          </div>
 
-            <TextField
-              size="small"
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-text-muted">sleep ms</label>
+            <input
               type="number"
-              label="sleep ms"
+              className="w-24 bg-surface-elevated border border-border-muted rounded px-3 py-1.5 text-sm text-text-primary"
               value={sleepMs}
               onChange={(e) =>
                 setSleepMs(Math.max(0, Number(e.target.value) || 0))
               }
-              sx={{ width: 120 }}
             />
+          </div>
 
-            <Button
-              variant={echoSql ? "contained" : "outlined"}
-              onClick={() => setEchoSql((v) => !v)}
-            >
-              SQL Echo {echoSql ? "ON" : "OFF"}
-            </Button>
-          </Stack>
+          <button
+            onClick={() => setEchoSql((v) => !v)}
+            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+              echoSql
+                ? "bg-primary hover:bg-primary-emphasis text-text-primary"
+                : "border border-border-muted hover:bg-surface-elevated text-text-secondary"
+            }`}
+          >
+            SQL Echo {echoSql ? "ON" : "OFF"}
+          </button>
 
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ display: { xs: "none", sm: "block" } }}
-          />
+          <div className="h-6 w-px bg-surface-highlight" />
 
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="contained"
-              color="error"
-              disabled={!selected.size}
-              onClick={() => runDelete("fast")}
-            >
-              Delete Selected (FAST)
-            </Button>
+          <button
+            onClick={() => runDelete("fast")}
+            disabled={!selected.size}
+            className="bg-danger hover:bg-danger-emphasis disabled:bg-surface-highlight disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors text-text-primary"
+          >
+            Delete (FAST)
+          </button>
 
-            <Button
-              variant="outlined"
-              color="warning"
-              disabled={!selected.size}
-              onClick={() => runDelete("slow")}
-            >
-              Delete Selected (SLOW)
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
-              disabled={!selected.size}
-              onClick={() => runDelete("turbo")}
-            >
-              Delete Selected (TURBO)
-            </Button>
-          </Stack>
-        </Stack>
-      </Toolbar>
+          <button
+            onClick={() => runDelete("slow")}
+            disabled={!selected.size}
+            className="border border-warning text-warning hover:bg-warning-soft disabled:border-border-muted disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Delete (SLOW)
+          </button>
+
+          <button
+            onClick={() => runDelete("turbo")}
+            disabled={!selected.size}
+            className="border border-accent text-accent hover:bg-accent-soft disabled:border-border-muted disabled:text-text-muted disabled:cursor-not-allowed px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Delete (TURBO)
+          </button>
+        </div>
+      </div>
 
       {opInfo && (
-        <Alert severity="info" sx={{ mb: 1 }}>
+        <Alert severity="info">
           Mode: <strong>{opInfo.performance}</strong> • Time:{" "}
           <strong>{opInfo.timing_seconds ?? "?"}s</strong>
-          {opInfo.related ? (
+          {opInfo.related && (
             <>
               {" "}
               • Children — progress: {opInfo.related.progress ?? "-"},
               flashcards: {opInfo.related.flashcards ?? "-"}, decks:{" "}
               {opInfo.related.decks ?? "-"}
             </>
-          ) : null}
+          )}
         </Alert>
       )}
 
-      <Divider sx={{ mb: 1 }} />
+      <DataFetchWrapper
+        loading={loading}
+        error={err}
+        onRetry={load}
+        loadingComponent={
+          <div className="overflow-hidden rounded-xl border border-border-muted bg-surface-elevated">
+            <table className="w-full text-sm">
+              <tbody>
+                <TableRowSkeleton columns={8} rows={Math.min(perPage, 8)} />
+              </tbody>
+            </table>
+          </div>
+        }
+        isEmpty={!loading && items.length === 0}
+        emptyMessage="No users found."
+      >
+        <div className="bg-surface-elevated rounded-xl border border-border-muted overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border-muted bg-background-subtle/50">
+                <th className="px-6 py-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      items.length > 0 &&
+                      items.every((u) => selected.has(u.email))
+                    }
+                    onChange={toggleAllOnPage}
+                    className="w-4 h-4 rounded border-border-muted bg-background-subtle"
+                  />
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Username
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Email
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Demo
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Verified
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Last seen
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Created
+                </th>
+                <th className="text-left px-6 py-3 font-medium text-text-secondary">
+                  Demo expires
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((u) => {
+                const checked = selected.has(u.email);
+                return (
+                  <tr
+                    key={u.id}
+                    className="border-b border-border-muted/50 hover:bg-surface-highlight/40"
+                  >
+                    <td className="px-6 py-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOne(u.email)}
+                        className="w-4 h-4 rounded border-border-muted bg-background-subtle"
+                      />
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.username}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">{u.email}</td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.is_demo ? "Yes" : "No"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.email_verified ? "Yes" : "No"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {formatEAT(u.last_seen)}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.created_at
+                        ? new Date(u.created_at).toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="px-6 py-3 text-text-primary">
+                      {u.demo_expires_at
+                        ? new Date(u.demo_expires_at).toLocaleString()
+                        : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </DataFetchWrapper>
 
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={
-                    selected.size > 0 && selected.size < (items?.length || 0)
-                  }
-                  checked={
-                    items.length > 0 &&
-                    items.every((u) => selected.has(u.email))
-                  }
-                  onChange={toggleAllOnPage}
+      <div className="flex justify-center">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 border border-border-muted rounded-lg hover:bg-surface-elevated disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
+          >
+            Previous
+          </button>
+          <div className="flex items-center px-4 py-2 text-text-secondary">
+            Page {page} of {totalPages}
+          </div>
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 border border-border-muted rounded-lg hover:bg-surface-elevated disabled:opacity-50 disabled:cursor-not-allowed text-text-secondary"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------- Teacher Invites Tab ------------------------- */
+
+function TeacherInvitesTab() {
+  const [maxUses, setMaxUses] = useState(1);
+  const [days, setDays] = useState(30);
+  const [invite, setInvite] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isDev = !!import.meta.env.DEV;
+  const base = window.location.origin;
+  const link = invite?.code ? `${base}/teacher?code=${invite.code}` : "";
+
+  const makeInvite = async () => {
+    try {
+      setErr("");
+      setLoading(true);
+      const payload = {
+        max_uses: Number(maxUses) || 1,
+        expires_in_days: Number(days) || undefined,
+      };
+      const inv = await createTeacherInvite(payload);
+      setInvite(inv);
+      showSuccess("Invite created successfully");
+    } catch (e) {
+      const message = e.message || "Failed to create invite";
+      setErr(message);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showSuccess("Copied to clipboard");
+    } catch {
+      // no-op
+    }
+  };
+
+  const makeMeTeacher = async () => {
+    try {
+      setLoading(true);
+      const inv =
+        invite ||
+        (await createTeacherInvite({ max_uses: 1, expires_in_days: 30 }));
+      await redeemTeacherCode(inv.code);
+      window.location.href = "/teacher";
+    } catch (e) {
+      const apiError = handleApiError(e);
+      setErr(apiError.message || "Self-promote failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {!ADMIN_KEY && (
+        <Alert severity="warning">
+          <strong>VITE_ADMIN_API_KEY</strong> is not set. Admin calls will fail.
+        </Alert>
+      )}
+
+      {err && <Alert severity="error">{err}</Alert>}
+
+      <div className="bg-surface-elevated rounded-xl p-6 border border-border-muted">
+        <h2 className="text-xl font-semibold mb-4 text-text-primary">
+          Create a Teacher Invite
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm text-text-muted mb-1">
+              Max uses
+            </label>
+            <input
+              type="number"
+              className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-primary"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-text-muted mb-1">
+              Expires in (days)
+            </label>
+            <input
+              type="number"
+              className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-primary"
+              value={days}
+              onChange={(e) => setDays(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={makeInvite}
+              disabled={loading || !ADMIN_KEY}
+              className="w-full bg-primary hover:bg-primary-emphasis disabled:bg-surface-highlight disabled:text-text-primary0 px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              {loading ? "Creating…" : "Create invite"}
+            </button>
+          </div>
+        </div>
+
+        {invite && (
+          <div className="space-y-4 pt-4 border-t border-border-muted">
+            <Alert severity="success">Invite created.</Alert>
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm text-text-muted mb-1">
+                  Code
+                </label>
+                <input
+                  type="text"
+                  value={invite.code}
+                  disabled
+                  className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-muted"
                 />
-              </TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Demo</TableCell>
-              <TableCell>Verified</TableCell>
-              <TableCell>Last seen</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Demo expires</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {items.map((u) => {
-              const checked = selected.has(u.email);
-              return (
-                <TableRow key={u.id} hover>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => toggleOne(u.email)}
-                    />
-                  </TableCell>
-                  <TableCell>{u.username}</TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>{u.is_demo ? "Yes" : "No"}</TableCell>
-                  <TableCell>{u.email_verified ? "Yes" : "No"}</TableCell>
-                  <TableCell>{formatEAT(u.last_seen)}</TableCell>
-                  <TableCell>
-                    {u.created_at
-                      ? new Date(u.created_at).toLocaleString()
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {u.demo_expires_at
-                      ? new Date(u.demo_expires_at).toLocaleString()
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {!items.length && (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  No users
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </div>
+              <button
+                onClick={() => copy(invite.code)}
+                className="border border-border-muted hover:bg-surface-highlight px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Copy
+              </button>
+            </div>
 
-      <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(_, v) => setPage(v)}
-          color="primary"
-          shape="rounded"
-        />
-      </Box>
-    </Box>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm text-text-muted mb-1">
+                  Invite link
+                </label>
+                <input
+                  type="text"
+                  value={link}
+                  disabled
+                  className="w-full bg-background-subtle border border-border-muted rounded-lg px-4 py-2 text-text-muted"
+                />
+              </div>
+              <button
+                onClick={() => copy(link)}
+                className="border border-border-muted hover:bg-surface-highlight px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Copy link
+              </button>
+            </div>
+
+            {isDev && (
+              <button
+                onClick={makeMeTeacher}
+                disabled={loading}
+                className="w-full border border-border-muted hover:bg-surface-elevated disabled:bg-background-subtle disabled:text-text-subtle px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                {loading ? "Applying…" : "Make me a teacher (dev)"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <p className="text-sm text-text-muted">
+        Tip: share the link with a logged-in user. When they open{" "}
+        <code className="bg-surface-elevated px-2 py-0.5 rounded text-text-secondary">
+          /teacher?code=…
+        </code>
+        , the portal will auto-redeem and unlock.
+      </p>
+    </div>
   );
 }

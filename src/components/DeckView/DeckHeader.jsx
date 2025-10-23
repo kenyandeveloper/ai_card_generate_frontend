@@ -1,20 +1,17 @@
-"use client";
-
 import { useState } from "react";
-import {
-  Box,
-  Typography,
-  Button,
-  Breadcrumbs,
-  Link,
-  Stack,
-} from "@mui/material";
 import { BookOpen, Plus, ChevronRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import AIGenerateModal from "./AIGenerateModal";
 
-const DeckHeader = ({ deck, onAddFlashcard, navigate, onRefresh }) => {
+export default function DeckHeader({
+  deck,
+  onAddFlashcard,
+  navigate,
+  onRefresh,
+}) {
   const [aiOpen, setAiOpen] = useState(false);
+  const title = deck?.title || `Deck ${deck?.id}`;
+  const description = deck?.description || "No description available";
 
   return (
     <>
@@ -23,83 +20,61 @@ const DeckHeader = ({ deck, onAddFlashcard, navigate, onRefresh }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Box sx={{ mb: 4 }}>
-          <Breadcrumbs
-            separator={<ChevronRight size={16} />}
-            sx={{ mb: 2, color: "text.secondary" }}
-          >
-            <Link
-              component="button"
-              variant="body2"
-              onClick={() => navigate("/mydecks")}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                color: "text.secondary",
-                textDecoration: "none",
-                "&:hover": { color: "primary.main" },
-              }}
-            >
-              <BookOpen size={16} />
-              My Decks
-            </Link>
-            <Typography color="text.primary">
-              {deck?.title || `Deck ${deck?.id}`}
-            </Typography>
-          </Breadcrumbs>
+        <header className="mb-6">
+          {/* Breadcrumbs */}
+          <nav aria-label="Breadcrumb" className="mb-3 text-text-secondary">
+            <ol className="flex items-center gap-2 text-sm">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => navigate("/mydecks")}
+                  className="inline-flex items-center gap-1 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded px-1"
+                >
+                  <BookOpen size={16} />
+                  <span>My Decks</span>
+                </button>
+              </li>
+              <li aria-hidden="true" className="text-text-primary0">
+                <ChevronRight size={16} />
+              </li>
+              <li aria-current="page" className="text-text-primary">
+                {title}
+              </li>
+            </ol>
+          </nav>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: "bold", color: "text.primary", mb: 1 }}
-              >
-                {deck?.title || `Deck ${deck?.id}`}
-              </Typography>
-              <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                {deck?.description || "No description available"}
-              </Typography>
-            </Box>
+          {/* Title + Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-text-primary">
+                {title}
+              </h1>
+              <p className="text-sm md:text-base text-text-secondary mt-1">
+                {description}
+              </p>
+            </div>
 
-            {/* Action buttons */}
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                startIcon={<Sparkles size={18} />}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
                 onClick={() => setAiOpen(true)}
-                sx={{
-                  borderRadius: 2,
-                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-border-muted px-4 py-2 text-sm hover:border-border-muted"
               >
-                Generate with AI
-              </Button>
+                <Sparkles size={18} />
+                <span>Generate with AI</span>
+              </button>
 
-              <Button
-                variant="contained"
-                startIcon={<Plus size={18} />}
+              <button
+                type="button"
                 onClick={onAddFlashcard}
-                sx={{
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                  "&:hover": {
-                    bgcolor: "primary.dark",
-                  },
-                  borderRadius: 2,
-                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary hover:bg-primary px-4 py-2 text-sm font-medium"
               >
-                Add Flashcard
-              </Button>
-            </Stack>
-          </Box>
-        </Box>
+                <Plus size={18} />
+                <span>Add Flashcard</span>
+              </button>
+            </div>
+          </div>
+        </header>
       </motion.div>
 
       {/* AI Generation Modal */}
@@ -107,13 +82,8 @@ const DeckHeader = ({ deck, onAddFlashcard, navigate, onRefresh }) => {
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         deckId={deck?.id}
-        onInserted={(n) => {
-          // optionally: show a snackbar here if you have one
-          onRefresh?.(); // refresh deck flashcards
-        }}
+        onInserted={() => onRefresh?.()}
       />
     </>
   );
-};
-
-export default DeckHeader;
+}

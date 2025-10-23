@@ -1,139 +1,68 @@
-import {
-  Grid,
-  Card,
-  CardContent,
-  Box,
-  Typography,
-  Divider,
-  Chip,
-  Paper,
-  Button,
-  useTheme,
-} from "@mui/material";
-import { BookOpen, AlertCircle, PlayCircle } from "lucide-react";
+import { AlertCircle, PlayCircle } from "lucide-react";
 
 const DecksList = ({ decks, onDeckClick, onCreateDeckClick }) => {
-  const theme = useTheme();
   const safeDecks = Array.isArray(decks) ? decks : [];
 
   if (safeDecks.length === 0) {
-    return <EmptyDeckState onCreateDeckClick={onCreateDeckClick} />;
+    return (
+      <div className="bg-surface-elevated border border-border-muted rounded-xl p-8 text-center">
+        <AlertCircle className="w-12 h-12 text-text-muted mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-text-primary mb-2">
+          No decks found
+        </h3>
+        <p className="text-text-muted mb-6">
+          Create your first deck to start studying
+        </p>
+        <button
+          onClick={onCreateDeckClick}
+          className="bg-primary hover:bg-primary-emphasis text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors"
+        >
+          Create Deck
+        </button>
+      </div>
+    );
   }
 
   return (
-    <Grid container spacing={3}>
-      {safeDecks.map((deck) => {
-        return (
-          <Grid item xs={12} sm={6} md={4} key={deck.id}>
-            <DeckCard deck={deck} onClick={() => onDeckClick(deck.id)} />
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
-};
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {safeDecks.map((deck) => (
+        <div
+          key={deck.id}
+          className="bg-surface-elevated rounded-2xl border border-border-muted shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-border-muted">
+            <h3 className="text-lg font-semibold text-text-primary line-clamp-2">
+              {deck.title}
+            </h3>
+          </div>
 
-const DeckCard = ({ deck, onClick }) => {
-  const theme = useTheme();
+          {/* Body */}
+          <div className="p-6 flex-1">
+            <p className="text-text-muted text-sm mb-4 line-clamp-3">
+              {deck.description || "No description available."}
+            </p>
 
-  return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
-      }}
-    >
-      <CardContent
-        sx={{ p: 0, flexGrow: 1, display: "flex", flexDirection: "column" }}
-      >
-        {/* Header Section */}
-        <Box sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: "bold", color: "text.primary" }}
-          >
-            {deck.title}
-          </Typography>
-        </Box>
+            <div className="flex justify-start">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-soft text-primary">
+                {deck.subject}
+              </span>
+            </div>
+          </div>
 
-        {/* Body Section */}
-        <Box sx={{ p: 3, flexGrow: 1 }}>
-          {/* Description */}
-          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-            {deck.description || "No description available."}
-          </Typography>
-
-          {/* Subject Chip */}
-          <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
-            <Chip
-              label={deck.subject}
-              size="small"
-              sx={{
-                bgcolor: "accent.light",
-                color: "text.primary",
-                fontWeight: 500,
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* Footer Section */}
-        <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<PlayCircle size={18} />}
-            onClick={onClick}
-            sx={{
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-              borderRadius: 2,
-            }}
-          >
-            Study Now
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-const EmptyDeckState = ({ onCreateDeckClick }) => {
-  const theme = useTheme();
-
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 4,
-        borderRadius: 2,
-        bgcolor: "background.paper",
-        border: 1,
-        borderColor: "divider",
-        textAlign: "center",
-      }}
-    >
-      <AlertCircle size={48} color={theme.palette.text.secondary} />
-      <Typography variant="h6" sx={{ mt: 2 }}>
-        No decks found
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Create your first deck to start studying
-      </Typography>
-      <Button variant="contained" color="primary" onClick={onCreateDeckClick}>
-        Create Deck
-      </Button>
-    </Paper>
+          {/* Footer */}
+          <div className="p-4 border-t border-border-muted">
+            <button
+              onClick={() => onDeckClick(deck.id)}
+              className="w-full bg-primary hover:bg-primary-emphasis text-primary-foreground py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <PlayCircle className="w-4 h-4" />
+              Study Now
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 };
 
