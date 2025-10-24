@@ -28,12 +28,11 @@ const Study = () => {
   } = useStudyData(decksPerPage);
 
   const {
-    stats: dashboardStats,
+    data: dashboardStats,
     loading: statsLoading,
     error: statsError,
     refetch,
-  } =
-    useDashboardStats();
+  } = useDashboardStats();
   const { updateUserStats } = useProgress();
 
   const defaultStats = {
@@ -136,7 +135,11 @@ const Study = () => {
             extraTop={
               <StatsOverview
                 userStats={userStats}
-                completedThisWeek={pagination?.completedThisWeek ?? 0}
+                completedThisWeek={
+                  dashboardStats?.total_flashcards_studied ||
+                  dashboardStats?.stats?.total_flashcards_studied ||
+                  0
+                }
                 onUpdateGoalClick={() => setGoalDialogOpen(true)}
               />
             }

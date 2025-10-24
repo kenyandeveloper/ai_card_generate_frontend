@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -71,7 +69,9 @@ const LearningTipsCard = () => {
               className="flex items-start gap-3 p-3 rounded-xl bg-surface-highlight/60 hover:bg-surface-highlight transition-colors duration-300 group"
             >
               <div className="flex-shrink-0 mt-0.5">
-                <CheckCircle className={`w-4 h-4 ${tip.color} group-hover:scale-110 transition-transform duration-300`} />
+                <CheckCircle
+                  className={`w-4 h-4 ${tip.color} group-hover:scale-110 transition-transform duration-300`}
+                />
               </div>
               <p className="text-sm text-text-muted leading-relaxed group-hover:text-text-secondary transition-colors duration-300">
                 {tip.text}
@@ -83,8 +83,8 @@ const LearningTipsCard = () => {
         {/* Call to Action */}
         <div className="mt-6 p-4 bg-gradient-to-r from-primary-soft to-secondary-soft rounded-xl border border-border-primary">
           <p className="text-sm text-text-muted text-center">
-            💡 <strong className="text-text-primary">Pro tip:</strong> Consistency
-            beats intensity. Study a little every day!
+            💡 <strong className="text-text-primary">Pro tip:</strong>{" "}
+            Consistency beats intensity. Study a little every day!
           </p>
         </div>
       </div>

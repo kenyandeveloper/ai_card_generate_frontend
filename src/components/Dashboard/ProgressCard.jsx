@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Trophy, Target, Clock, Brain, TrendingUp, Zap } from "lucide-react";
 
 const ProgressCard = ({ stats }) => {
-  const weeklyGoal = stats?.weekly_goal || 200;
+  const weeklyGoal = stats?.weekly_goal || 50;
   const studied = stats?.total_flashcards_studied || 0;
   const progressPercentage = Math.min(
     weeklyGoal ? (studied / weeklyGoal) * 100 : 0,

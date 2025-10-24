@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "framer-motion";
 import { Brain, Sparkles } from "lucide-react";
 
