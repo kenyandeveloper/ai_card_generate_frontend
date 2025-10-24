@@ -12,6 +12,7 @@ import { useDashboardStats, useProgress } from "../../hooks/useProgress";
 import { DataFetchWrapper } from "../common/DataFetchWrapper";
 import { LoadingSkeleton } from "../common/LoadingSkeleton";
 import { showError, showSuccess } from "../common/ErrorSnackbar";
+import { calculateStats } from "../../utils/statCalculations";
 
 const Study = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const Study = () => {
     error: statsError,
     refetch,
   } = useDashboardStats();
-  const { updateUserStats } = useProgress();
+  const { allProgress, updateUserStats } = useProgress();
 
   const defaultStats = {
     weekly_goal: 50,
@@ -66,6 +67,11 @@ const Study = () => {
     });
     setNewWeeklyGoal(dashboardStats.weekly_goal || 50);
   }, [dashboardStats]);
+  // compute weekly stats similar to Dashboard
+  const calculatedStats = calculateStats(
+    allProgress || [],
+    userStats.weekly_goal
+  );
 
   const updateWeeklyGoal = async () => {
     try {
@@ -135,11 +141,7 @@ const Study = () => {
             extraTop={
               <StatsOverview
                 userStats={userStats}
-                completedThisWeek={
-                  dashboardStats?.total_flashcards_studied ||
-                  dashboardStats?.stats?.total_flashcards_studied ||
-                  0
-                }
+                completedThisWeek={calculatedStats?.completedThisWeek ?? 0}
                 onUpdateGoalClick={() => setGoalDialogOpen(true)}
               />
             }
