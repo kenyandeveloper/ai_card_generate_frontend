@@ -148,7 +148,9 @@ const Study = () => {
             extraTop={
               <StatsOverview
                 userStats={userStats}
-                completedThisWeek={calculatedStats?.completedThisWeek ?? 0}
+                completedThisWeek={
+                  calculatedStats?.total_flashcards_studied ?? 0
+                }
                 onUpdateGoalClick={() => setGoalDialogOpen(true)}
               />
             }
