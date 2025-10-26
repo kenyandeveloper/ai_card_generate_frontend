@@ -37,10 +37,21 @@ export const calculateStats = (progressData, weekly_goal) => {
 
 const getCardsStudiedThisWeek = (progressData) => {
   const now = new Date();
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+  const startOfWeek = new Date(now);
   startOfWeek.setHours(0, 0, 0, 0);
-  return progressData.filter((p) => new Date(p.last_studied_at) >= startOfWeek)
-    .length;
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+  const toDate = (val) => {
+    if (!val) return null;
+    const s = String(val);
+    // Trim fractional seconds to 3 digits (milliseconds)
+    const normalized = s.replace(/(\.\d{3})\d+$/, "$1");
+    return new Date(normalized);
+  };
+  return progressData.filter((p) => {
+    const d = toDate(p.last_studied_at);
+    return d && d >= startOfWeek;
+  }).length;
 };
 
 const calculateAverageStudyTime = (progressData, totalStudyTime) => {

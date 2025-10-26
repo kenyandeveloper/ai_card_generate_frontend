@@ -34,7 +34,7 @@ const Study = () => {
     error: statsError,
     refetch,
   } = useDashboardStats();
-  const { allProgress, updateUserStats } = useProgress();
+  const { allProgress, fetchAllProgress, updateUserStats } = useProgress();
 
   const defaultStats = {
     weekly_goal: 50,
@@ -55,6 +55,10 @@ const Study = () => {
   }, [userLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
+    fetchAllProgress(); // 🔥 triggers progress data load
+  }, [fetchAllProgress]);
+
+  useEffect(() => {
     if (!dashboardStats) {
       return;
     }
@@ -67,6 +71,9 @@ const Study = () => {
     });
     setNewWeeklyGoal(dashboardStats.weekly_goal || 50);
   }, [dashboardStats]);
+  console.log("[Study] allProgress length:", allProgress?.length);
+  console.log("[Study] first item:", allProgress?.[0]);
+
   // compute weekly stats similar to Dashboard
   const calculatedStats = calculateStats(
     allProgress || [],
