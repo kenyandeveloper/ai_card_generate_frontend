@@ -7,7 +7,8 @@
     "dev": "vite --config vite.config.js",
     "build": "vite build --config vite.config.js",
     "lint": "eslint .",
-    "preview": "vite preview --config vite.config.js"
+    "preview": "vite preview --config vite.config.js",
+    "pretest": "node -e \"const {JSDOM} = require('jsdom'); const {window} = new JSDOM(''); global.window = window; global.navigator = window.navigator; Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -36,6 +37,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "globals": "^15.14.0",
+    "jsdom": "^27.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "vite": "^6.1.0"

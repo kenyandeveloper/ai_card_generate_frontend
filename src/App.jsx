@@ -33,6 +33,7 @@ import ForgotPassword from "./components/Authentication/ForgotPassword.jsx";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import WelcomeOnboarding from "./pages/WelcomeOnboarding.jsx";
 import ProgressPage from "./pages/ProgressPage.jsx";
+import QuizPage from "./pages/QuizPage.jsx";
 
 // ---- Guard: only teacher/admin may pass ----
 function TeacherGuard({ children }) {
@@ -104,6 +105,7 @@ function App() {
           <Route path="/mydecks/:deckId" element={<DeckView />} />
           <Route path="/study" element={<Study />} />
           <Route path="/study/:deckId" element={<StudyMode />} />
+          <Route path="/quiz/*" element={<QuizPage />} />
 
           {/* Teacher area (guarded) */}
           <Route

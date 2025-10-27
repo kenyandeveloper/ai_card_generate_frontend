@@ -165,17 +165,27 @@ export const dashboardApi = {
 };
 
 export const quizApi = {
-  generateQuiz: async (
-    deckIds,
+  generateQuiz: async ({
+    deckIds = [],
     questionCount = 10,
     quizType = "multiple_choice",
-    timeLimit = null
-  ) => {
-    const response = await apiClient.post("/quiz/generate", {
-      deck_ids: deckIds,
-      question_count: questionCount,
+    timerEnabled = false,
+    timeLimit = null,
+  } = {}) => {
+    const normalizedDeckIds = Array.isArray(deckIds)
+      ? deckIds.map((value) => {
+          const numeric = Number(value);
+          return Number.isFinite(numeric) ? numeric : null;
+        }).filter((value) => value !== null)
+      : [];
+
+    const response = await apiClient.post("/api/quiz/generate", {
+      deck_ids: normalizedDeckIds,
+      total_questions: Number.isFinite(Number(questionCount))
+        ? Number(questionCount)
+        : 10,
       quiz_type: quizType,
-      time_limit: timeLimit,
+      time_limit_seconds: timerEnabled ? timeLimit ?? 30 : null,
     });
 
     if (import.meta.env?.DEV) {
@@ -187,22 +197,22 @@ export const quizApi = {
 
   submitAnswer: async (
     quizId,
-    flashcardId,
-    userAnswer,
-    timeSpent,
-    options = null
+    {
+      answerId,
+      userAnswer,
+      timeSpentSeconds = 0,
+    } = {}
   ) => {
-    const response = await apiClient.post(`/quiz/${quizId}/answer`, {
-      flashcard_id: flashcardId,
+    const response = await apiClient.post(`/api/quiz/${quizId}/answer`, {
+      answer_id: answerId,
       user_answer: userAnswer,
-      time_spent_seconds: timeSpent,
-      options,
+      time_spent_seconds: Math.max(0, Number.isFinite(timeSpentSeconds) ? Math.trunc(timeSpentSeconds) : 0),
     });
     return response.data;
   },
 
   completeQuiz: async (quizId) => {
-    const response = await apiClient.post(`/quiz/${quizId}/complete`);
+    const response = await apiClient.post(`/api/quiz/${quizId}/complete`);
     return response.data;
   },
 };

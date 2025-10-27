@@ -9,10 +9,12 @@ import {
   School,
   X,
   TrendingUp,
+  HelpCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import BillingDialog from "./Billing/BillingDialog";
 import { useBilling } from "../contexts/BillingContext.jsx";
+import { useProgress } from "../hooks/useProgress";
 
 const NavBar = () => {
   const { user, logout, hasRole } = useUser();
@@ -23,6 +25,7 @@ const NavBar = () => {
   const [billingOpen, setBillingOpen] = useState(false);
   const { billingStatus, isActive: hasActiveSubscription, refresh: refreshBilling } =
     useBilling();
+  const { isPremium } = useProgress();
 
   const handleLogout = async () => {
     await logout();
@@ -35,6 +38,12 @@ const NavBar = () => {
       { path: "/progress", label: "Progress", icon: TrendingUp },
       { path: "/mydecks", label: "My Decks", icon: BookOpen },
       { path: "/study", label: "Study", icon: GraduationCap },
+      {
+        path: "/quiz",
+        label: "Quiz",
+        icon: HelpCircle,
+        requiresPremium: true,
+      },
     ];
     if (hasRole?.("teacher", "admin")) {
       items.push({ path: "/teacher", label: "Teacher", icon: School });
@@ -114,7 +123,11 @@ const NavBar = () => {
             <nav className="hidden md:flex items-center gap-4 flex-1 ml-8">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive =
+                  location.pathname === item.path ||
+                  location.pathname.startsWith(`${item.path}/`);
+                const showPremiumBadge =
+                  item.requiresPremium && isPremium === false;
                 return (
                   <Link
                     key={item.path}
@@ -126,7 +139,14 @@ const NavBar = () => {
                     }`}
                   >
                     <Icon size={20} />
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {showPremiumBadge && (
+                        <span className="inline-flex items-center rounded-full bg-primary-soft/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                          PRO
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 );
               })}
@@ -199,7 +219,11 @@ const NavBar = () => {
             <nav className="px-4 py-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive =
+                  location.pathname === item.path ||
+                  location.pathname.startsWith(`${item.path}/`);
+                const showPremiumBadge =
+                  item.requiresPremium && isPremium === false;
                 return (
                   <Link
                     key={item.path}
@@ -212,7 +236,12 @@ const NavBar = () => {
                     }`}
                   >
                     <Icon size={18} />
-                    <span>{item.label}</span>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {showPremiumBadge && (
+                      <span className="inline-flex items-center rounded-full bg-primary-soft/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        PRO
+                      </span>
+                    )}
                   </Link>
                 );
               })}
