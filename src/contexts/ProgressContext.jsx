@@ -302,26 +302,8 @@ export const ProgressProvider = ({ children }) => {
         const normalized = normalizeDashboardPayload(data);
         setUsageInfo(data?.usage ?? null);
 
-        const planKey = (data?.usage?.plan_type ?? data?.usage?.plan ?? "")
-          .toString()
-          .toLowerCase();
-        const entitlements = Array.isArray(data?.usage?.entitlements)
-          ? data.usage.entitlements.map((item) =>
-              (item || "").toString().toLowerCase()
-            )
-          : [];
-        const premiumPlans = [
-          "premium",
-          "premium_monthly",
-          "premium_daily",
-          "daily",
-        ];
-        const hasPremiumPlan =
-          premiumPlans.some((slug) => planKey.includes(slug)) ||
-          entitlements.some(
-            (entry) => entry.includes("premium") || entry.includes("daily_pass")
-          );
-        setIsPremium(hasPremiumPlan);
+        const planKey = (data?.usage?.plan ?? "").toString().toLowerCase();
+        setIsPremium(planKey === "premium");
 
         if (import.meta.env?.DEV) {
           console.debug("[ProgressContext] Dashboard fetched successfully");
