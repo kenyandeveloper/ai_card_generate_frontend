@@ -1,3 +1,4 @@
+// src/components/NavBar.jsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import {
@@ -23,9 +24,19 @@ const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
-  const { billingStatus, isActive: hasActiveSubscription, refresh: refreshBilling } =
-    useBilling();
-  const { isPremium } = useProgress();
+
+  const {
+    billingStatus,
+    isActive: hasActiveSubscription,
+    isPremium: billingPremium,
+    refresh: refreshBilling,
+  } = useBilling();
+
+  // ProgressContext premium (derived from /dashboard usage.plan, entitlements, etc.)
+  const { isPremium: progressPremium } = useProgress();
+
+  // 🔑 unified premium flag: either billing OR progress says premium/active
+  const isPremiumUser = Boolean(billingPremium || progressPremium);
 
   const handleLogout = async () => {
     await logout();
@@ -74,6 +85,7 @@ const NavBar = () => {
     billingStatus?.month_remaining ??
     billingStatus?.day_remaining ??
     null;
+
   const remainingPeriod = aiUsage.month_key
     ? "this month"
     : billingStatus?.month_remaining != null
@@ -81,17 +93,17 @@ const NavBar = () => {
     : billingStatus?.day_remaining != null
     ? "today"
     : null;
+
   const upgradeLabel = "Upgrade";
+
   const planIndicatorSource =
     billingStatus?.plan ||
     billingStatus?.plan_type ||
     billingStatus?.subscription_plan ||
     billingStatus?.usage?.plan ||
     "";
-  const planIndicatorKey = planIndicatorSource
-    .toString()
-    .trim()
-    .toLowerCase();
+
+  const planIndicatorKey = planIndicatorSource.toString().trim().toLowerCase();
   const isDailyPlan = ["daily", "day", "daily_pass"].some((token) =>
     planIndicatorKey.includes(token)
   );
@@ -126,8 +138,10 @@ const NavBar = () => {
                 const isActive =
                   location.pathname === item.path ||
                   location.pathname.startsWith(`${item.path}/`);
+
                 const showPremiumBadge =
-                  item.requiresPremium && isPremium === false;
+                  item.requiresPremium && isPremiumUser === false;
+
                 return (
                   <Link
                     key={item.path}
@@ -164,7 +178,7 @@ const NavBar = () => {
                 </button>
               )}
 
-              {/* Free Prompts Remaining */}
+              {/* Plan badge when active */}
               {user && isActiveSub && (
                 <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">
                   {isDailyPlan ? "⚡ Daily Pass" : "💎 Pro"}
@@ -222,8 +236,10 @@ const NavBar = () => {
                 const isActive =
                   location.pathname === item.path ||
                   location.pathname.startsWith(`${item.path}/`);
+
                 const showPremiumBadge =
-                  item.requiresPremium && isPremium === false;
+                  item.requiresPremium && isPremiumUser === false;
+
                 return (
                   <Link
                     key={item.path}

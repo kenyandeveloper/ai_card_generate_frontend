@@ -1,3 +1,4 @@
+// src/contexts/BillingContext.jsx
 import {
   createContext,
   useCallback,
@@ -108,10 +109,35 @@ export const BillingProvider = ({ children }) => {
     };
   }, [isAuthenticated, refresh]);
 
-  const isActive = Boolean(
-    billingStatus?.subscription_status &&
-      billingStatus.subscription_status === "active"
-  );
+  // ---- derive "active" / "premium" flags from billingStatus ----
+  const subscriptionStatus = (billingStatus?.subscription_status || "")
+    .toString()
+    .toLowerCase();
+
+  const rawPlan = (
+    billingStatus?.usage?.plan ||
+    billingStatus?.plan_type ||
+    billingStatus?.plan ||
+    billingStatus?.subscription_plan ||
+    ""
+  )
+    .toString()
+    .toLowerCase();
+
+  const hasPaidPlan =
+    rawPlan.includes("daily") ||
+    rawPlan.includes("day") ||
+    rawPlan.includes("month") ||
+    rawPlan.includes("pro") ||
+    rawPlan.includes("premium");
+
+  const isActive =
+    subscriptionStatus === "active" ||
+    subscriptionStatus === "trialing" ||
+    hasPaidPlan;
+
+  const isPremium =
+    isActive || rawPlan === "premium" || rawPlan.includes("pro");
 
   const value = useMemo(
     () => ({
@@ -120,9 +146,9 @@ export const BillingProvider = ({ children }) => {
       error,
       refresh,
       isActive,
-      isPremium: isActive,
+      isPremium,
     }),
-    [billingStatus, error, isActive, isLoading, refresh]
+    [billingStatus, error, isActive, isLoading, isPremium, refresh]
   );
 
   return (
